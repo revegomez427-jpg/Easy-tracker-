@@ -666,6 +666,160 @@ export default function App() {
     );
   }
 
+
+  // ── BUDGET VIEW ───────────────────────────────────────
+  function BudgetView() {
+    const RULES = [
+      { id:"50-30-20", label:"50/30/20", desc:"Clásica — necesidades, personal, ahorro", needs:50, personal:30, saving:20 },
+      { id:"70-20-10", label:"70/20/10", desc:"Para deudas o ingresos bajos",            needs:70, personal:20, saving:10 },
+      { id:"60-20-20", label:"60/20/20", desc:"Equilibrada con buen ahorro",             needs:60, personal:20, saving:20 },
+      { id:"80-20",    label:"80/20",    desc:"Simple — gasta 80, ahorra 20",            needs:60, personal:20, saving:20 },
+      { id:"custom",   label:"Custom",   desc:"Tú decides los porcentajes",              needs:50, personal:30, saving:20 },
+    ];
+
+    const GROUPS = [
+      { id:"needs",    label:"🔴 Necesidades", desc:"Renta, Bills, Salud, Transporte", color:"#fb7185" },
+      { id:"personal", label:"🟡 Personal",    desc:"Comida, Personal, Préstamo, Otro", color:"#f5a623" },
+      { id:"saving",   label:"🟢 Ahorro",      desc:"Meta de ahorro",                   color:C.lime    },
+    ];
+
+    // Spent by group this period
+    const NEEDS_CATS    = ["housing","transport","bills","health"];
+    const PERSONAL_CATS = ["food","personal","loan","other"];
+    const SAVING_CATS   = ["savings"];
+
+    const spentNeeds    = expenses.filter(e=>NEEDS_CATS.includes(e.cat)).reduce((s,e)=>s+e.amount,0);
+    const spentPersonal = expenses.filter(e=>PERSONAL_CATS.includes(e.cat)).reduce((s,e)=>s+e.amount,0);
+    const spentSaving   = expenses.filter(e=>SAVING_CATS.includes(e.cat)).reduce((s,e)=>s+e.amount,0);
+
+    const limitNeeds    = totalIncome * (budgetPcts.needs/100);
+    const limitPersonal = totalIncome * (budgetPcts.personal/100);
+    const limitSaving   = totalIncome * (budgetPcts.saving/100);
+
+    const spentMap  = { needs: spentNeeds,    personal: spentPersonal,    saving: spentSaving    };
+    const limitMap  = { needs: limitNeeds,     personal: limitPersonal,     saving: limitSaving     };
+
+    function applyRule(rule) {
+      const newPcts = { needs: rule.needs, personal: rule.personal, saving: rule.saving };
+      setBudgetRule(rule.id);
+      setBudgetPcts(newPcts);
+      persist(income, period, expenses, rule.id, newPcts);
+    }
+
+    function adjustPct(key, delta) {
+      const keys = ["needs","personal","saving"];
+      const others = keys.filter(k=>k!==key);
+      const newVal = Math.max(5, Math.min(90, budgetPcts[key]+delta));
+      const diff = newVal - budgetPcts[key];
+      // Distribute diff from other two equally
+      const adj0 = Math.round(diff/2);
+      const adj1 = diff - adj0;
+      const newPcts = {
+        ...budgetPcts,
+        [key]: newVal,
+        [others[0]]: Math.max(5, budgetPcts[others[0]]-adj0),
+        [others[1]]: Math.max(5, budgetPcts[others[1]]-adj1),
+      };
+      // Normalize to 100
+      const total = newPcts.needs + newPcts.personal + newPcts.saving;
+      if(total !== 100) newPcts[others[1]] += 100-total;
+      setBudgetRule("custom");
+      setBudgetPcts(newPcts);
+      persist(income, period, expenses, "custom", newPcts);
+    }
+
+    return (
+      <div style={{padding:"1rem 1.25rem", paddingBottom:"6rem"}}>
+        {/* Header */}
+        <div style={{textAlign:"center", marginBottom:"1.25rem"}}>
+          <div style={{fontSize:"1.1rem", fontWeight:900, color:C.white}}>🎯 Presupuesto</div>
+          <div style={{fontSize:"0.75rem", color:C.slate, marginTop:2}}>Basado en tu ingreso de {fmt(totalIncome)}</div>
+        </div>
+
+        {/* Rule selector */}
+        <div style={{fontSize:"0.7rem", color:C.slate, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.6rem"}}>
+          Elige tu regla
+        </div>
+        <div style={{display:"flex", flexDirection:"column", gap:"0.4rem", marginBottom:"1.25rem"}}>
+          {RULES.map(rule=>(
+            <button key={rule.id} onClick={()=>applyRule(rule)}
+              style={{padding:"0.75rem 1rem", border:`1.5px solid ${budgetRule===rule.id?C.lime:C.border}`,
+                borderRadius:12, background:budgetRule===rule.id?`${C.lime}15`:C.card,
+                cursor:"pointer", fontFamily:"inherit", textAlign:"left", transition:"all 0.2s"}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                <span style={{fontWeight:800, fontSize:"0.95rem", color:budgetRule===rule.id?C.lime:C.white}}>{rule.label}</span>
+                {budgetRule===rule.id && <span style={{color:C.lime, fontSize:"0.8rem"}}>✓ Activa</span>}
+              </div>
+              <div style={{fontSize:"0.7rem", color:C.slate, marginTop:2}}>{rule.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Sliders / adjusters */}
+        {budgetRule && (
+          <>
+            <div style={{fontSize:"0.7rem", color:C.slate, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.6rem"}}>
+              Ajusta los porcentajes — suman {budgetPcts.needs+budgetPcts.personal+budgetPcts.saving}%
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:"0.75rem", marginBottom:"1.25rem"}}>
+              {GROUPS.map(g=>{
+                const pct = budgetPcts[g.id];
+                const limit = limitMap[g.id];
+                const spent = spentMap[g.id];
+                const spentPct = limit>0 ? Math.min((spent/limit)*100,100) : 0;
+                const overBudget = spent > limit;
+                return (
+                  <div key={g.id} style={{background:C.card, borderRadius:14, padding:"1rem", border:`1px solid ${C.border}`, borderLeft:`3px solid ${g.color}`}}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"0.5rem"}}>
+                      <div>
+                        <div style={{fontWeight:700, fontSize:"0.9rem", color:C.white}}>{g.label}</div>
+                        <div style={{fontSize:"0.65rem", color:C.slate}}>{g.desc}</div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontWeight:900, fontSize:"1.1rem", color:g.color}}>{pct}%</div>
+                        <div style={{fontSize:"0.65rem", color:C.slate}}>{fmt(limit)}</div>
+                      </div>
+                    </div>
+                    {/* +/- buttons */}
+                    <div style={{display:"flex", alignItems:"center", gap:"0.5rem", marginBottom:"0.6rem"}}>
+                      <button onClick={()=>adjustPct(g.id,-5)}
+                        style={{width:32, height:32, borderRadius:8, background:C.border, border:"none", color:C.white, fontSize:"1.1rem", cursor:"pointer", fontFamily:"inherit"}}>−</button>
+                      <div style={{flex:1, height:6, background:C.border, borderRadius:999, overflow:"hidden"}}>
+                        <div style={{height:"100%", width:`${pct}%`, background:g.color, borderRadius:999, transition:"width 0.3s ease"}}/>
+                      </div>
+                      <button onClick={()=>adjustPct(g.id,5)}
+                        style={{width:32, height:32, borderRadius:8, background:C.border, border:"none", color:C.white, fontSize:"1.1rem", cursor:"pointer", fontFamily:"inherit"}}>+</button>
+                    </div>
+                    {/* Spent vs limit */}
+                    <div style={{fontSize:"0.65rem", color:C.slate, marginBottom:"0.3rem"}}>
+                      Gastado: <span style={{color:overBudget?C.danger:C.white, fontWeight:600}}>{fmt(spent)}</span>
+                      {" / "}<span style={{color:g.color}}>{fmt(limit)}</span>
+                    </div>
+                    <div style={{height:4, background:C.border, borderRadius:999, overflow:"hidden"}}>
+                      <div style={{height:"100%", width:`${spentPct}%`, background:overBudget?C.danger:g.color, borderRadius:999, transition:"width 0.5s ease"}}/>
+                    </div>
+                    {overBudget && (
+                      <div style={{fontSize:"0.65rem", color:C.danger, marginTop:"0.3rem", fontWeight:600}}>
+                        ⚠️ Excediste por {fmt(spent-limit)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {!budgetRule && (
+          <div style={{textAlign:"center", padding:"2rem 0", color:C.slate, fontSize:"0.85rem"}}>
+            <div style={{fontSize:"2.5rem", marginBottom:"0.75rem"}}>🎯</div>
+            Elige una regla arriba para activar tu presupuesto.
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── CALENDAR ──────────────────────────────────────────
   function CalendarView() {
     const year=calMonth.getFullYear(),month=calMonth.getMonth();
