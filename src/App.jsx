@@ -319,6 +319,9 @@ export default function App() {
   const [selCat,setSelCat]     = useState(null);
   const [editExp,setEditExp]   = useState(null);
   const [showReset,setShowReset] = useState(false);
+  const [selMonth,setSelMonth]   = useState(null);
+  const [budgetRule,setBudgetRule] = useState(saved?.budgetRule||null);
+  const [budgetPcts,setBudgetPcts] = useState(saved?.budgetPcts||{needs:50,personal:30,saving:20});
 
   const totalIncome = parseFloat(income)||0;
   const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s+e.amount,0),[expenses]);
@@ -355,14 +358,16 @@ export default function App() {
     const perMonth={};
     expenses.forEach(e=>{
       const mk=monthKey(e.date);
-      perMonth[mk]=(perMonth[mk]||0)+e.amount;
+      if(!perMonth[mk]) perMonth[mk]={spent:0,items:[]};
+      perMonth[mk].spent+=e.amount;
+      perMonth[mk].items.push(e);
     });
     return Object.entries(perMonth)
       .sort(([a],[b])=>b.localeCompare(a))
-      .map(([ym,spent])=>({ym, spent, saved: totalIncome-spent}));
+      .map(([ym,{spent,items}])=>({ym, spent, saved: totalIncome-spent, items}));
   },[expenses,totalIncome]);
 
-  function persist(ni,np,ne){saveData({income:ni,period:np,expenses:ne});}
+  function persist(ni,np,ne,br,bp){saveData({income:ni,period:np,expenses:ne,budgetRule:br??budgetRule,budgetPcts:bp??budgetPcts});}
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
 
   function addExpense(){
@@ -568,7 +573,7 @@ export default function App() {
             </div>
 
             <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-              Ahorro real por mes
+              Ahorro real por mes — <span style={{color:C.lime,textTransform:"none"}}>toca para ver detalle</span>
             </div>
 
             {savingsByMonth.length===0?(
@@ -578,25 +583,78 @@ export default function App() {
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
-                {savingsByMonth.map(({ym,spent,saved})=>{
+                {savingsByMonth.map(({ym,spent,saved,items})=>{
                   const isPos=saved>=0;
                   const maxSpent=Math.max(...savingsByMonth.map(m=>m.spent));
                   const barW=maxSpent>0?(spent/maxSpent)*100:0;
+                  const isOpen=selMonth===ym;
                   return(
-                    <div key={ym} style={{background:C.card,borderRadius:12,padding:"0.85rem 1rem",border:`1px solid ${C.border}`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
-                        <span style={{fontWeight:700,fontSize:"0.9rem",color:C.white}}>{fmtMonth(ym)}</span>
-                        <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?C.lime:C.danger}}>
-                          {isPos?"+ ":"- "}{fmt(Math.abs(saved))}
-                        </span>
-                      </div>
-                      <div style={{height:4,background:C.border,borderRadius:999,overflow:"hidden",marginBottom:"0.35rem"}}>
-                        <div style={{height:"100%",width:`${barW}%`,background:isPos?C.lime:C.danger,borderRadius:999,transition:"width 0.5s ease"}}/>
-                      </div>
-                      <div style={{fontSize:"0.65rem",color:C.slate}}>
-                        Gastado: <span style={{color:C.white}}>{fmt(spent)}</span>
-                        {" · "}Ingreso: <span style={{color:C.white}}>{fmt(totalIncome)}</span>
-                      </div>
+                    <div key={ym} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`,overflow:"hidden"}}>
+                      {/* Month header — tappable */}
+                      <button onClick={()=>setSelMonth(isOpen?null:ym)}
+                        style={{width:"100%",padding:"0.85rem 1rem",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
+                          <span style={{fontWeight:700,fontSize:"0.9rem",color:C.white}}>{fmtMonth(ym)}</span>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?C.lime:C.danger}}>
+                              {isPos?"+":"−"}{fmt(Math.abs(saved))}
+                            </span>
+                            <span style={{color:C.slate,fontSize:"0.8rem"}}>{isOpen?"▲":"▼"}</span>
+                          </div>
+                        </div>
+                        <div style={{height:4,background:C.border,borderRadius:999,overflow:"hidden",marginBottom:"0.35rem"}}>
+                          <div style={{height:"100%",width:`${barW}%`,background:isPos?C.lime:C.danger,borderRadius:999}}/>
+                        </div>
+                        <div style={{fontSize:"0.65rem",color:C.slate,display:"flex",justifyContent:"space-between"}}>
+                          <span>Gastado: <span style={{color:C.white}}>{fmt(spent)}</span></span>
+                          <span>{items.length} gastos</span>
+                        </div>
+                      </button>
+
+                      {/* Expanded detail */}
+                      {isOpen&&(
+                        <div style={{borderTop:`1px solid ${C.border}`,padding:"0.75rem 1rem"}}>
+                          {/* Pie chart by category */}
+                          {(()=>{
+                            const byCat={};
+                            items.forEach(e=>{byCat[e.cat]=(byCat[e.cat]||0)+e.amount;});
+                            const pieItems=Object.entries(byCat).map(([catId,value])=>{
+                              const cat=CATEGORIES.find(c=>c.id===catId)||CATEGORIES[8];
+                              return {label:cat.label,value,color:cat.color};
+                            });
+                            return pieItems.length>1?(
+                              <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"0.75rem"}}>
+                                <PieChart items={pieItems} size={160}/>
+                                <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",marginTop:"0.5rem",justifyContent:"center"}}>
+                                  {pieItems.map((p,i)=>(
+                                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:"0.65rem"}}>
+                                      <div style={{width:7,height:7,borderRadius:"50%",background:p.color}}/>
+                                      <span style={{color:C.white}}>{p.label}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ):null;
+                          })()}
+                          {/* Expense list */}
+                          <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+                            {[...items].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
+                              const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
+                              return(
+                                <div key={e.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",background:C.elevated,borderRadius:9,padding:"0.55rem 0.65rem",borderLeft:`2px solid ${cat.color}`}}>
+                                  <span style={{fontSize:"0.9rem"}}>{cat.emoji}</span>
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <div style={{fontWeight:600,fontSize:"0.8rem",color:C.white,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
+                                    {e.note&&<div style={{fontSize:"0.6rem",color:C.lime}}>📝 {e.note}</div>}
+                                    <div style={{fontSize:"0.6rem",color:C.slate}}>{fmtKey(e.date)}</div>
+                                  </div>
+                                  <span style={{fontWeight:700,color:C.danger,fontSize:"0.8rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -702,6 +760,7 @@ export default function App() {
     {id:"home",     icon:"📊", label:"Inicio"},
     {id:"calendar", icon:"📅", label:"Historial"},
     {id:"add",      icon:"＋",  label:"Agregar"},
+    {id:"budget",   icon:"🎯", label:"Presupuesto"},
   ];
 
   return(
@@ -747,6 +806,7 @@ export default function App() {
 
       <div style={{paddingBottom:70}}>
         {tab==="home"     && <HomeView/>}
+        {tab==="budget"   && <BudgetView/>}
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
