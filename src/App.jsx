@@ -26,6 +26,7 @@ const CATEGORIES = [
   { id: "health",    label: "Salud",      emoji: "💊", color: "#fb7185" },
   { id: "savings",   label: "Ahorros",    emoji: "🏦", color: "#a78bfa" },
   { id: "personal",  label: "Personal",   emoji: "👤", color: "#34d399" },
+  { id: "loan",      label: "Préstamo",   emoji: "🤝", color: "#f97316" },
   { id: "other",     label: "Otro",       emoji: "📦", color: C.slate   },
 ];
 
@@ -455,17 +456,20 @@ export default function App() {
           <div style={{ fontSize: "0.7rem", color: C.slate, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
             Nuevo gasto — {fmtKey(todayKey())}
           </div>
-          <select value={form.cat} onChange={e => setForm({ ...form, cat: e.target.value })}
+          <select value={form.cat} onChange={e => setForm(f => ({ ...f, cat: e.target.value }))}
             style={{ ...inp, marginBottom: "0.75rem", cursor: "pointer" }}>
             {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
           </select>
-          <input placeholder="Descripción (ej: Gasolina)" value={form.desc}
-            onChange={e => setForm({ ...form, desc: e.target.value })}
+          <input
+            placeholder="Descripción (ej: Gasolina)"
+            value={form.desc}
+            autoComplete="off"
+            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, desc: v })); }}
             style={{ ...inp, marginBottom: "0.75rem" }}/>
           <div style={{ position: "relative", marginBottom: "1rem" }}>
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.lime, fontWeight: 800 }}>$</span>
             <input type="number" placeholder="0.00" value={form.amount}
-              onChange={e => setForm({ ...form, amount: e.target.value })}
+              onChange={e => { const v = e.target.value; setForm(f => ({ ...f, amount: v })); }}
               onKeyDown={e => e.key === "Enter" && addExpense()}
               style={{ ...inp, paddingLeft: "1.75rem" }}/>
           </div>
