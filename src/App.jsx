@@ -36,6 +36,13 @@ const MONTHS_ES = [
 ];
 const DAYS_ES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
+const INP = {
+  width: "100%", padding: "0.8rem 1rem", background: C.border,
+  border: "1.5px solid transparent", borderRadius: 12,
+  color: C.white, fontSize: "0.95rem", outline: "none",
+  boxSizing: "border-box", fontFamily: "inherit",
+};
+
 function fmt(n) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 }
@@ -100,23 +107,60 @@ function Ring({ pct, color, size = 72 }) {
   );
 }
 
-// ── STORAGE HELPERS ────────────────────────────────────
+// ── STORAGE ────────────────────────────────────────────
 const STORAGE_KEY = "et_data";
-
 function loadData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
+}
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
 }
 
-function saveData(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {/* ignore */}
+// ── ADD VIEW (fuera de App para evitar que el teclado desaparezca) ──
+function AddView({ form, setForm, addExpense, owlEye, owlMood, remColor, remaining }) {
+  return (
+    <div style={{ padding: "1.5rem 1.25rem", paddingBottom: "6rem" }}>
+      <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+        <Owl size={56} eyeColor={owlEye} mood={owlMood}/>
+        <div style={{ fontSize: "0.75rem", color: C.slate, marginTop: 4 }}>
+          Disponible: <span style={{ color: remColor, fontWeight: 700 }}>{fmt(remaining)}</span>
+        </div>
+      </div>
+      <div style={{ background: C.card, borderRadius: 16, padding: "1.25rem", border: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: "0.7rem", color: C.slate, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
+          Nuevo gasto — {fmtKey(todayKey())}
+        </div>
+        <select
+          value={form.cat}
+          onChange={e => setForm(f => ({ ...f, cat: e.target.value }))}
+          style={{ ...INP, marginBottom: "0.75rem", cursor: "pointer" }}>
+          {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </select>
+        <input
+          placeholder="Descripción (ej: Gasolina)"
+          value={form.desc}
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
+          onChange={e => setForm(f => ({ ...f, desc: e.target.value }))}
+          style={{ ...INP, marginBottom: "0.75rem" }}/>
+        <div style={{ position: "relative", marginBottom: "1rem" }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.lime, fontWeight: 800 }}>$</span>
+          <input
+            type="number"
+            placeholder="0.00"
+            value={form.amount}
+            onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+            onKeyDown={e => e.key === "Enter" && addExpense()}
+            style={{ ...INP, paddingLeft: "1.75rem" }}/>
+        </div>
+        <button onClick={addExpense}
+          style={{ width: "100%", padding: "0.9rem", background: C.lime, border: "none", borderRadius: 12, color: C.bg, fontWeight: 900, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit" }}>
+          Guardar gasto
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ── APP ────────────────────────────────────────────────
@@ -163,17 +207,10 @@ export default function App() {
     setTimeout(() => setToast(null), 2000);
   }
 
-  function handleStart() {
-    if (!income) return;
-    persist(income, period, expenses);
-    setScreen("main");
-  }
-
   function addExpense() {
     const amt = parseFloat(form.amount);
     if (!form.desc.trim() || isNaN(amt) || amt <= 0) return;
-    const newExp = { id: Date.now(), ...form, amount: amt, date: todayKey() };
-    const updated = [newExp, ...expenses];
+    const updated = [{ id: Date.now(), ...form, amount: amt, date: todayKey() }, ...expenses];
     setExpenses(updated);
     persist(income, period, updated);
     setForm({ desc: "", amount: "", cat: form.cat });
@@ -188,27 +225,7 @@ export default function App() {
     showToast("Eliminado");
   }
 
-  function handleEditSetup() {
-    setScreen("setup");
-  }
-
-  function handleSetupSave() {
-    persist(income, period, expenses);
-    setScreen("main");
-  }
-
-  const inp = {
-    width: "100%",
-    padding: "0.8rem 1rem",
-    background: C.border,
-    border: "1.5px solid transparent",
-    borderRadius: 12,
-    color: C.white,
-    fontSize: "0.95rem",
-    outline: "none",
-    boxSizing: "border-box",
-    fontFamily: "inherit",
-  };
+  const inp = INP;
 
   // ── SETUP ────────────────────────────────────────────
   if (screen === "setup") return (
@@ -219,7 +236,6 @@ export default function App() {
         <span style={{ fontSize: "2rem", fontWeight: 900, color: C.lime }}>Tracker</span>
       </div>
       <p style={{ color: C.slate, fontSize: "0.75rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "2rem" }}>ET · Tu dinero, claro</p>
-
       <div style={{ width: "100%", maxWidth: 340, background: C.card, borderRadius: 20, padding: "1.75rem 1.5rem", boxShadow: "0 32px 64px rgba(0,0,0,0.5)" }}>
         <p style={{ color: C.slate, fontSize: "0.8rem", textAlign: "center", marginBottom: "0.6rem" }}>¿Cada cuánto cobras?</p>
         <div style={{ display: "flex", gap: "0.4rem", marginBottom: "1.25rem" }}>
@@ -233,7 +249,6 @@ export default function App() {
             </button>
           ))}
         </div>
-
         <p style={{ color: C.slate, fontSize: "0.8rem", textAlign: "center", marginBottom: "0.6rem" }}>
           ¿Cuánto cobras por {PERIODS.find(p => p.id === period)?.short}?
         </p>
@@ -241,12 +256,11 @@ export default function App() {
           <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.lime, fontWeight: 800, fontSize: "1.1rem" }}>$</span>
           <input type="number" placeholder="0.00" value={income}
             onChange={e => setIncome(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleStart()}
+            onKeyDown={e => e.key === "Enter" && (income && (saveData({ income, period, expenses }), setScreen("main")))}
             autoFocus
             style={{ ...inp, paddingLeft: "2.2rem", fontSize: "1.4rem", fontWeight: 800, textAlign: "center", border: `1.5px solid ${C.lime}40` }}/>
         </div>
-
-        <button onClick={saved?.income ? handleSetupSave : handleStart}
+        <button onClick={() => { if (income) { persist(income, period, expenses); setScreen("main"); } }}
           style={{ width: "100%", padding: "0.9rem", background: C.lime, border: "none", borderRadius: 12, color: C.bg, fontWeight: 900, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit" }}>
           {saved?.income ? "Guardar cambios" : "Comenzar →"}
         </button>
@@ -268,19 +282,17 @@ export default function App() {
                 <div style={{ fontSize: "0.95rem", fontWeight: 900, color: C.lime }}>ET</div>
               </div>
             </div>
-            <button onClick={handleEditSetup}
+            <button onClick={() => setScreen("setup")}
               style={{ background: C.border, border: "none", color: C.slate, borderRadius: 8, padding: "0.35rem 0.75rem", fontSize: "0.75rem", cursor: "pointer", fontFamily: "inherit" }}>
               ✏️ Editar
             </button>
           </div>
-
           <div style={{ textAlign: "center", marginBottom: "1rem" }}>
             <div style={{ fontSize: "0.65rem", color: C.slate, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
               Disponible esta {periodLabel}
             </div>
             <div style={{ fontSize: "2.75rem", fontWeight: 900, color: remColor, letterSpacing: -1, lineHeight: 1 }}>{fmt(remaining)}</div>
           </div>
-
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: "0.65rem", color: C.slate, textTransform: "uppercase", marginBottom: 2 }}>Cobrado</div>
@@ -292,12 +304,10 @@ export default function App() {
               <div style={{ fontWeight: 700, color: C.danger }}>{fmt(totalSpent)}</div>
             </div>
           </div>
-
           <div style={{ marginTop: "1rem", height: 5, background: C.border, borderRadius: 999, overflow: "hidden" }}>
             <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: pct > 90 ? C.danger : pct > 70 ? C.warn : C.lime, borderRadius: 999, transition: "width 0.5s ease" }}/>
           </div>
         </div>
-
         <div style={{ padding: "1rem 1.25rem" }}>
           {Object.keys(byCategory).length > 0 && (
             <>
@@ -319,7 +329,6 @@ export default function App() {
               </div>
             </>
           )}
-
           <div style={{ fontSize: "0.7rem", color: C.slate, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.6rem" }}>Últimos gastos</div>
           {recent.length === 0 ? (
             <div style={{ textAlign: "center", padding: "2rem 0", color: C.slate, fontSize: "0.85rem" }}>
@@ -329,7 +338,7 @@ export default function App() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
               {recent.map(e => {
-                const cat = CATEGORIES.find(c => c.id === e.cat) || CATEGORIES[7];
+                const cat = CATEGORIES.find(c => c.id === e.cat) || CATEGORIES[8];
                 return (
                   <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.65rem", background: C.card, borderRadius: 11, padding: "0.65rem 0.75rem", borderLeft: `3px solid ${cat.color}` }}>
                     <span style={{ fontSize: "1rem" }}>{cat.emoji}</span>
@@ -358,7 +367,6 @@ export default function App() {
     for (let i = 0; i < firstDay; i++) cells.push(null);
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
     const todayStr = todayKey();
-
     return (
       <div style={{ padding: "1rem 1.25rem", paddingBottom: "6rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
@@ -368,13 +376,11 @@ export default function App() {
           <button onClick={() => setCalMonth(new Date(year, month + 1, 1))}
             style={{ background: C.card, border: `1px solid ${C.border}`, color: C.white, borderRadius: 8, padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "1rem" }}>›</button>
         </div>
-
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: "0.4rem" }}>
           {DAYS_ES.map(d => (
             <div key={d} style={{ textAlign: "center", fontSize: "0.65rem", color: C.slate, fontWeight: 700, padding: "0.3rem 0" }}>{d}</div>
           ))}
         </div>
-
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: "0.25rem" }}>
           {cells.map((d, i) => {
             if (!d) return <div key={`e${i}`}/>;
@@ -398,7 +404,6 @@ export default function App() {
             );
           })}
         </div>
-
         {selDay && byDate[selDay] && (
           <div style={{ marginTop: "1.25rem", background: C.card, borderRadius: 16, padding: "1.25rem", border: `1px solid ${C.border}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
@@ -413,7 +418,7 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {byDate[selDay].map(e => {
-                const cat = CATEGORIES.find(c => c.id === e.cat) || CATEGORIES[7];
+                const cat = CATEGORIES.find(c => c.id === e.cat) || CATEGORIES[8];
                 return (
                   <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", background: C.elevated, borderRadius: 10, padding: "0.65rem 0.75rem", borderLeft: `3px solid ${cat.color}` }}>
                     <span style={{ fontSize: "1.1rem" }}>{cat.emoji}</span>
@@ -442,46 +447,6 @@ export default function App() {
     );
   }
 
-  // ── ADD ───────────────────────────────────────────────
-  function AddView() {
-    return (
-      <div style={{ padding: "1.5rem 1.25rem", paddingBottom: "6rem" }}>
-        <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
-          <Owl size={56} eyeColor={owlEye} mood={owlMood}/>
-          <div style={{ fontSize: "0.75rem", color: C.slate, marginTop: 4 }}>
-            Disponible: <span style={{ color: remColor, fontWeight: 700 }}>{fmt(remaining)}</span>
-          </div>
-        </div>
-        <div style={{ background: C.card, borderRadius: 16, padding: "1.25rem", border: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: "0.7rem", color: C.slate, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
-            Nuevo gasto — {fmtKey(todayKey())}
-          </div>
-          <select value={form.cat} onChange={e => setForm(f => ({ ...f, cat: e.target.value }))}
-            style={{ ...inp, marginBottom: "0.75rem", cursor: "pointer" }}>
-            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
-          </select>
-          <input
-            placeholder="Descripción (ej: Gasolina)"
-            value={form.desc}
-            autoComplete="off"
-            onChange={e => { const v = e.target.value; setForm(f => ({ ...f, desc: v })); }}
-            style={{ ...inp, marginBottom: "0.75rem" }}/>
-          <div style={{ position: "relative", marginBottom: "1rem" }}>
-            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.lime, fontWeight: 800 }}>$</span>
-            <input type="number" placeholder="0.00" value={form.amount}
-              onChange={e => { const v = e.target.value; setForm(f => ({ ...f, amount: v })); }}
-              onKeyDown={e => e.key === "Enter" && addExpense()}
-              style={{ ...inp, paddingLeft: "1.75rem" }}/>
-          </div>
-          <button onClick={addExpense}
-            style={{ width: "100%", padding: "0.9rem", background: C.lime, border: "none", borderRadius: 12, color: C.bg, fontWeight: 900, fontSize: "1rem", cursor: "pointer", fontFamily: "inherit" }}>
-            Guardar gasto
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // ── NAV ───────────────────────────────────────────────
   const navItems = [
     { id: "home",     icon: "📊", label: "Inicio"   },
@@ -491,19 +456,26 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100svh", background: C.bg, fontFamily: "'Inter',sans-serif", color: C.white, maxWidth: 480, margin: "0 auto", position: "relative" }}>
-
       {toast && (
         <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", background: C.lime, color: C.bg, padding: "0.5rem 1.25rem", borderRadius: 999, fontWeight: 700, fontSize: "0.85rem", zIndex: 999, whiteSpace: "nowrap", boxShadow: `0 8px 24px rgba(200,241,53,0.3)` }}>
           {toast}
         </div>
       )}
-
       <div style={{ paddingBottom: 70 }}>
         {tab === "home"     && <HomeView/>}
         {tab === "calendar" && <CalendarView/>}
-        {tab === "add"      && <AddView/>}
+        {tab === "add"      && (
+          <AddView
+            form={form}
+            setForm={setForm}
+            addExpense={addExpense}
+            owlEye={owlEye}
+            owlMood={owlMood}
+            remColor={remColor}
+            remaining={remaining}
+          />
+        )}
       </div>
-
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 100 }}>
         {navItems.map(item => {
           const active = tab === item.id;
