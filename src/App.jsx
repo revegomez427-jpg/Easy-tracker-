@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import ET from "./ET.jsx";
 
 const C = {
   bg:       "#080f1e",
@@ -261,11 +262,11 @@ function exportCSV(expenses) {
 }
 
 // ── ADD VIEW ───────────────────────────────────────────
-function AddView({form,setForm,addExpense,owlEye,owlMood,remColor,remaining}) {
+function AddView({form,setForm,addExpense,etMood,remColor,remaining}) {
   return (
     <div style={{padding:"1.5rem 1.25rem",paddingBottom:"6rem"}}>
       <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
-        <Owl size={56} eyeColor={owlEye} mood={owlMood}/>
+        <ET size={56} mood={etMood}/>
         <div style={{fontSize:"0.75rem",color:C.slate,marginTop:4}}>
           Disponible: <span style={{color:remColor,fontWeight:700}}>{fmt(remaining)}</span>
         </div>
@@ -323,8 +324,16 @@ export default function App() {
   const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s+e.amount,0),[expenses]);
   const remaining   = totalIncome-totalSpent;
   const pct         = totalIncome>0?(totalSpent/totalIncome)*100:0;
-  const owlEye      = pct>90?C.danger:pct>70?C.warn:C.lime;
-  const owlMood     = pct>90?"alert":"happy";
+  // ET mood based on spend %
+  const etMood = pct === 0 ? "sleepy"
+               : pct < 50  ? "happy"
+               : pct < 70  ? "cool"
+               : pct < 90  ? "sweat"
+               : remaining < 0 ? "cry"
+               : "sweat";
+  // Keep owlEye/owlMood for backward compat
+  const owlEye  = pct>90?C.danger:pct>70?C.warn:C.lime;
+  const owlMood = pct>90?"alert":"happy";
   const remColor    = remaining<0?C.danger:remaining<totalIncome*0.1?C.warn:C.lime;
   const periodLabel = PERIODS.find(p=>p.id===period)?.short||"período";
 
@@ -387,7 +396,7 @@ export default function App() {
   // ── SETUP ──────────────────────────────────────────
   if(screen==="setup") return (
     <div style={{minHeight:"100svh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'Inter',sans-serif",padding:"1.5rem"}}>
-      <Owl size={96} eyeColor={C.lime} mood="happy"/>
+      <ET size={96} mood="happy"/>
       <div style={{display:"flex",alignItems:"baseline",gap:6,margin:"0.5rem 0 2px"}}>
         <span style={{fontSize:"2rem",fontWeight:900,color:C.white}}>Easy</span>
         <span style={{fontSize:"2rem",fontWeight:900,color:C.lime}}>Tracker</span>
@@ -431,7 +440,7 @@ export default function App() {
         <div style={{background:C.card,padding:"1.25rem 1.25rem 1rem",borderBottom:`1px solid ${C.border}`}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <Owl size={38} eyeColor={owlEye} mood={owlMood}/>
+              <ET size={38} mood={etMood}/>
               <div>
                 <div style={{fontSize:"0.6rem",color:C.slate,letterSpacing:"0.1em",textTransform:"uppercase"}}>Easy Tracker</div>
                 <div style={{fontSize:"0.95rem",fontWeight:900,color:C.lime}}>ET</div>
@@ -519,7 +528,7 @@ export default function App() {
             </div>
             {expenses.length===0?(
               <div style={{textAlign:"center",padding:"2rem 0",color:C.slate,fontSize:"0.85rem"}}>
-                <Owl size={56} eyeColor={C.slate} mood="happy"/>
+                <ET size={56} mood="sleepy"/>
                 <div style={{marginTop:"0.75rem"}}>Sin gastos aún.<br/>Toca <strong style={{color:C.lime}}>＋</strong> para agregar.</div>
               </div>
             ):(
@@ -741,7 +750,7 @@ export default function App() {
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
-            owlEye={owlEye} owlMood={owlMood} remColor={remColor} remaining={remaining}/>
+            etMood={etMood} remColor={remColor} remaining={remaining}/>
         )}
       </div>
 
