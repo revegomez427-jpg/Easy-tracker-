@@ -322,6 +322,7 @@ export default function App() {
   const [selMonth,setSelMonth]   = useState(null);
   const [budgetRule,setBudgetRule] = useState(saved?.budgetRule||null);
   const [budgetPcts,setBudgetPcts] = useState(saved?.budgetPcts||{needs:50,personal:30,saving:20});
+  const [savedPeriods,setSavedPeriods] = useState(saved?.savedPeriods||[]);
 
   const totalIncome = parseFloat(income)||0;
   const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s+e.amount,0),[expenses]);
@@ -367,7 +368,7 @@ export default function App() {
       .map(([ym,{spent,items}])=>({ym, spent, saved: totalIncome-spent, items}));
   },[expenses,totalIncome]);
 
-  function persist(ni,np,ne,br,bp){saveData({income:ni,period:np,expenses:ne,budgetRule:br??budgetRule,budgetPcts:bp??budgetPcts});}
+  function persist(ni,np,ne,br,bp,sp){saveData({income:ni,period:np,expenses:ne,budgetRule:br??budgetRule,budgetPcts:bp??budgetPcts,savedPeriods:sp??savedPeriods});}
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
 
   function addExpense(){
@@ -393,9 +394,29 @@ export default function App() {
   }
 
   function resetPeriod(){
-    const updated=[];
-    setExpenses(updated); persist(income,period,updated);
-    setShowReset(false); showToast("🔄 Período reiniciado");
+    // Save current period to history before clearing
+    if(expenses.length>0){
+      const now = new Date();
+      const label = `${MONTHS_ES[now.getMonth()]} ${now.getFullYear()}`;
+      const periodRecord = {
+        id: Date.now(),
+        label,
+        date: todayKey(),
+        income: totalIncome,
+        spent: totalSpent,
+        saved: totalIncome - totalSpent,
+        expenses: [...expenses],
+      };
+      const updatedPeriods = [periodRecord, ...savedPeriods];
+      setSavedPeriods(updatedPeriods);
+      setExpenses([]);
+      persist(income, period, [], budgetRule, budgetPcts, updatedPeriods);
+    } else {
+      setExpenses([]);
+      persist(income, period, []);
+    }
+    setShowReset(false);
+    showToast("✓ Período guardado en Savings");
   }
 
   // ── SETUP ──────────────────────────────────────────
@@ -471,6 +492,14 @@ export default function App() {
               Disponible esta {periodLabel}
             </div>
             <div style={{fontSize:"2.75rem",fontWeight:900,color:remColor,letterSpacing:-1,lineHeight:1}}>{fmt(remaining)}</div>
+            {savedPeriods.length>0&&(
+              <div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:6,background:C.elevated,borderRadius:20,padding:"0.25rem 0.75rem"}}>
+                <span style={{fontSize:"0.7rem",color:C.slate}}>💰 Ahorrado:</span>
+                <span style={{fontSize:"0.8rem",fontWeight:800,color:C.lime}}>
+                  {fmt(savedPeriods.reduce((s,p)=>s+(p.saved>0?p.saved:0),0))}
+                </span>
+              </div>
+            )}
           </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{textAlign:"center"}}>
@@ -564,37 +593,50 @@ export default function App() {
         {/* SAVINGS TAB */}
         {homeTab==="savings"&&(
           <div style={{padding:"1rem 1.25rem"}}>
-            <div style={{background:C.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${C.border}`,marginBottom:"1rem"}}>
-              <div style={{fontSize:"0.65rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>Ahorro total acumulado</div>
-              <div style={{fontSize:"2rem",fontWeight:900,color:C.lime}}>
-                {fmt(savingsByMonth.reduce((s,m)=>s+(m.saved>0?m.saved:0),0))}
-              </div>
-              <div style={{fontSize:"0.7rem",color:C.slate,marginTop:4}}>Suma de meses con ahorro positivo</div>
-            </div>
+            {/* Accumulated savings from closed periods */}
+            {(()=>{
+              const totalSaved = savedPeriods.reduce((s,p)=>s+(p.saved>0?p.saved:0),0);
+              return (
+                <div style={{background:C.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${C.border}`,marginBottom:"1rem"}}>
+                  <div style={{fontSize:"0.65rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>💰 Ahorro acumulado total</div>
+                  <div style={{fontSize:"2rem",fontWeight:900,color:totalSaved>0?C.lime:C.slate}}>
+                    {fmt(totalSaved)}
+                  </div>
+                  <div style={{fontSize:"0.7rem",color:C.slate,marginTop:4}}>
+                    De {savedPeriods.length} período{savedPeriods.length!==1?"s":""} cerrado{savedPeriods.length!==1?"s":""}
+                    {savedPeriods.length===0 && " — reinicia un período para empezar a acumular"}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-              Ahorro real por mes — <span style={{color:C.lime,textTransform:"none"}}>toca para ver detalle</span>
+              Períodos cerrados — <span style={{color:C.lime,textTransform:"none"}}>toca para ver gastos</span>
             </div>
 
-            {savingsByMonth.length===0?(
+            {savedPeriods.length===0?(
               <div style={{textAlign:"center",padding:"2rem 0",color:C.slate,fontSize:"0.85rem"}}>
-                <div style={{fontSize:"2rem",marginBottom:"0.5rem"}}>💰</div>
-                Agrega gastos para ver tu ahorro mensual.
+                <div style={{fontSize:"2rem",marginBottom:"0.5rem"}}>🔄</div>
+                <div>Cuando reinicies un período<br/>se guardará aquí automáticamente.</div>
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
-                {savingsByMonth.map(({ym,spent,saved,items})=>{
+                {savedPeriods.map(({id,label,income:pIncome,spent,saved,expenses:pExp})=>{
                   const isPos=saved>=0;
-                  const maxSpent=Math.max(...savingsByMonth.map(m=>m.spent));
+                  const maxSpent=Math.max(...savedPeriods.map(m=>m.spent));
                   const barW=maxSpent>0?(spent/maxSpent)*100:0;
-                  const isOpen=selMonth===ym;
+                  const isOpen=selMonth===id;
+                  const ym=id; const items=pExp;
                   return(
                     <div key={ym} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`,overflow:"hidden"}}>
                       {/* Month header — tappable */}
                       <button onClick={()=>setSelMonth(isOpen?null:ym)}
                         style={{width:"100%",padding:"0.85rem 1rem",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
-                          <span style={{fontWeight:700,fontSize:"0.9rem",color:C.white}}>{fmtMonth(ym)}</span>
+                          <div>
+                            <span style={{fontWeight:700,fontSize:"0.9rem",color:C.white}}>{label}</span>
+                            <div style={{fontSize:"0.6rem",color:C.slate}}>Ingreso: {fmt(pIncome)}</div>
+                          </div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?C.lime:C.danger}}>
                               {isPos?"+":"−"}{fmt(Math.abs(saved))}
