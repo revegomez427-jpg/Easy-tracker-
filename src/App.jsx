@@ -111,27 +111,48 @@ function Ring({pct,color,size=72}) {
   );
 }
 
-// ── PIE CHART ──────────────────────────────────────────
+// ── PIE CHART (Safari-compatible) ─────────────────────
 function PieChart({items,size=200}) {
   const total=items.reduce((s,i)=>s+i.value,0);
   if(total===0)return null;
-  let angle=-Math.PI/2;
-  const cx=size/2,cy=size/2,r=size/2-16;
-  const slices=items.map(item=>{
-    const sweep=(item.value/total)*2*Math.PI;
-    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
-    angle+=sweep;
-    const x2=cx+r*Math.cos(angle), y2=cy+r*Math.sin(angle);
-    const large=sweep>Math.PI?1:0;
-    return {...item,d:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`,
-      pct:Math.round((item.value/total)*100)};
+  const cx=size/2, cy=size/2, r=size/2-16, inner=r*0.42;
+
+  // Build slices using stroke-dasharray technique — works on all browsers
+  const circumference = 2*Math.PI*r;
+  let offset = circumference * 0.25; // start at top
+
+  const slices = items.map(item=>{
+    const pct = item.value/total;
+    const dash = pct * circumference;
+    const gap  = circumference - dash;
+    const slice = { ...item, dash, gap, offset: -offset, pct: Math.round(pct*100) };
+    offset -= dash; // next slice starts where this one ends (negative = clockwise)
+    return slice;
   });
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {slices.map((s,i)=><path key={i} d={s.d} fill={s.color} stroke={C.bg} strokeWidth="2"/>)}
-      <circle cx={cx} cy={cy} r={r*0.42} fill={C.card}/>
-      <text x={cx} y={cy-6} textAnchor="middle" fill={C.white} fontSize="13" fontWeight="800">{fmt(total).replace("$","")}</text>
-      <text x={cx} y={cy+10} textAnchor="middle" fill={C.slate} fontSize="8">total</text>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+      style={{overflow:"visible"}}>
+      {/* Background ring */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={r-inner}/>
+      {/* Slices */}
+      {slices.map((s,i)=>(
+        <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+          stroke={s.color}
+          strokeWidth={r-inner}
+          strokeDasharray={`${s.dash} ${s.gap}`}
+          strokeDashoffset={s.offset}
+          style={{transform:"rotate(-90deg)",transformOrigin:`${cx}px ${cy}px`}}/>
+      ))}
+      {/* Center hole */}
+      <circle cx={cx} cy={cy} r={inner} fill={C.card}/>
+      {/* Total text */}
+      <text x={cx} y={cy-5} textAnchor="middle" fill={C.white}
+        fontSize="12" fontWeight="800" fontFamily="Inter,sans-serif">
+        {fmt(total).replace("$","")}
+      </text>
+      <text x={cx} y={cy+10} textAnchor="middle" fill={C.slate}
+        fontSize="8" fontFamily="Inter,sans-serif">total</text>
     </svg>
   );
 }
@@ -319,6 +340,8 @@ export default function App() {
   const [selCat,setSelCat]     = useState(null);
   const [editExp,setEditExp]   = useState(null);
   const [showReset,setShowReset] = useState(false);
+  const [newMonthAlert,setNewMonthAlert] = useState(false);
+  const [prevMonthLabel,setPrevMonthLabel] = useState("");
   const [selMonth,setSelMonth]   = useState(null);
   const [budgetRule,setBudgetRule] = useState(saved?.budgetRule||null);
   const [budgetPcts,setBudgetPcts] = useState(saved?.budgetPcts||{needs:50,personal:30,saving:20});
@@ -370,6 +393,19 @@ export default function App() {
 
   function persist(ni,np,ne,br,bp,sp){saveData({income:ni,period:np,expenses:ne,budgetRule:br??budgetRule,budgetPcts:bp??budgetPcts,savedPeriods:sp??savedPeriods});}
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
+
+  // Detect month change on load
+  useMemo(()=>{
+    if(expenses.length===0) return;
+    const lastDate = expenses.reduce((a,b)=>a.date>b.date?a:b).date;
+    const lastMonth = lastDate.slice(0,7); // YYYY-MM
+    const nowMonth = todayKey().slice(0,7);
+    if(nowMonth > lastMonth){
+      const [y,m] = lastMonth.split("-");
+      setPrevMonthLabel(`${MONTHS_ES[parseInt(m)-1]} ${y}`);
+      setNewMonthAlert(true);
+    }
+  },[]);
 
   function addExpense(){
     const amt=parseFloat(form.amount);
@@ -1043,7 +1079,60 @@ export default function App() {
         </div>
       )}
 
-      {/* Reset confirm */}
+      {/* New month alert */}
+      {newMonthAlert&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.25rem"}}>
+          <div style={{background:C.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${C.lime}40`,textAlign:"center"}}>
+            <ET size={72} mood="cool"/>
+            <div style={{fontWeight:900,color:C.lime,fontSize:"1.1rem",marginTop:"0.75rem",marginBottom:"0.25rem"}}>
+              ¡Nuevo mes!
+            </div>
+            <div style={{fontSize:"0.85rem",color:C.slate,marginBottom:"1rem"}}>
+              ¿Cerramos <span style={{color:C.white,fontWeight:700}}>{prevMonthLabel}</span> y lo guardamos en Savings?
+            </div>
+            <div style={{background:C.elevated,borderRadius:12,padding:"0.75rem",marginBottom:"1.25rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
+                <span style={{fontSize:"0.75rem",color:C.slate}}>Gastado</span>
+                <span style={{fontSize:"0.75rem",color:C.danger,fontWeight:700}}>{fmt(totalSpent)}</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <span style={{fontSize:"0.75rem",color:C.slate}}>Sobró</span>
+                <span style={{fontSize:"0.75rem",color:remaining>=0?C.lime:C.danger,fontWeight:700}}>{fmt(Math.abs(remaining))}</span>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:"0.5rem"}}>
+              <button onClick={()=>setNewMonthAlert(false)}
+                style={{flex:1,padding:"0.8rem",background:C.border,border:"none",borderRadius:12,color:C.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                Después
+              </button>
+              <button onClick={()=>{
+                if(expenses.length>0){
+                  const periodRecord={
+                    id:Date.now(),
+                    label:prevMonthLabel,
+                    date:todayKey(),
+                    income:totalIncome,
+                    spent:totalSpent,
+                    saved:totalIncome-totalSpent,
+                    expenses:[...expenses],
+                  };
+                  const updatedPeriods=[periodRecord,...savedPeriods];
+                  setSavedPeriods(updatedPeriods);
+                  setExpenses([]);
+                  persist(income,period,[],budgetRule,budgetPcts,updatedPeriods);
+                }
+                setNewMonthAlert(false);
+                showToast(`✓ ${prevMonthLabel} guardado en Savings`);
+              }}
+                style={{flex:2,padding:"0.8rem",background:C.lime,border:"none",borderRadius:12,color:C.bg,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
+                Cerrar y guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset confirm */}}
       {showReset&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.25rem"}}>
           <div style={{background:C.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${C.border}`,textAlign:"center"}}>
@@ -1104,3 +1193,4 @@ export default function App() {
     </div>
   );
 }
+
