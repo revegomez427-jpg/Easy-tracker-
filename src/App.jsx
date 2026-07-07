@@ -635,7 +635,9 @@ export default function App() {
                         style={{width:"100%",padding:"0.85rem 1rem",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
                           <div>
-                            <span style={{fontWeight:700,fontSize:"0.9rem",color:C.lime}}>En curso</span>
+                            <span style={{fontWeight:700,fontSize:"0.9rem",color:C.lime}}>
+                              {(()=>{const d=new Date();return `${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`;})()}
+                            </span>
                             <div style={{fontSize:"0.6rem",color:C.slate}}>Ingreso: {fmt(totalIncome)}</div>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
