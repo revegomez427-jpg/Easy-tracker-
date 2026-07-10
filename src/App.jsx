@@ -116,43 +116,46 @@ function PieChart({items,size=200}) {
   const total=items.reduce((s,i)=>s+i.value,0);
   if(total===0)return null;
   const cx=size/2, cy=size/2, r=size/2-16, inner=r*0.42;
-
-  // Build slices using stroke-dasharray technique — works on all browsers
+  const strokeW = r-inner;
   const circumference = 2*Math.PI*r;
-  let offset = circumference * 0.25; // start at top
 
+  // Calculate pct and dasharray for each slice
+  let accumulated = 0;
   const slices = items.map(item=>{
     const pct = item.value/total;
     const dash = pct * circumference;
     const gap  = circumference - dash;
-    const slice = { ...item, dash, gap, offset: -offset, pct: Math.round(pct*100) };
-    offset -= dash; // next slice starts where this one ends (negative = clockwise)
-    return slice;
+    // offset: start at top (-25% of circumference) minus accumulated
+    const offset = circumference * 0.25 - accumulated;
+    accumulated += dash;
+    return { ...item, dash, gap, offset, pct: Math.round(pct*100) };
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
-      style={{overflow:"visible"}}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {/* Background ring */}
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={r-inner}/>
-      {/* Slices */}
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={strokeW}/>
+      {/* Slices — each circle is one slice */}
       {slices.map((s,i)=>(
-        <circle key={i} cx={cx} cy={cy} r={r} fill="none"
+        <circle key={i}
+          cx={cx} cy={cy} r={r}
+          fill="none"
           stroke={s.color}
-          strokeWidth={r-inner}
+          strokeWidth={strokeW}
           strokeDasharray={`${s.dash} ${s.gap}`}
           strokeDashoffset={s.offset}
-          style={{transform:"rotate(-90deg)",transformOrigin:`${cx}px ${cy}px`}}/>
+          strokeLinecap="butt"
+        />
       ))}
       {/* Center hole */}
       <circle cx={cx} cy={cy} r={inner} fill={C.card}/>
-      {/* Total text */}
-      <text x={cx} y={cy-5} textAnchor="middle" fill={C.white}
-        fontSize="12" fontWeight="800" fontFamily="Inter,sans-serif">
+      {/* Total */}
+      <text x={cx} y={cy-4} textAnchor="middle" fill={C.white}
+        fontSize="11" fontWeight="800" fontFamily="Inter,sans-serif">
         {fmt(total).replace("$","")}
       </text>
-      <text x={cx} y={cy+10} textAnchor="middle" fill={C.slate}
-        fontSize="8" fontFamily="Inter,sans-serif">total</text>
+      <text x={cx} y={cy+9} textAnchor="middle" fill={C.slate}
+        fontSize="7" fontFamily="Inter,sans-serif">total</text>
     </svg>
   );
 }
@@ -187,12 +190,13 @@ function CategoryModal({cat,expenses,onClose,onDelete,onEdit}) {
         {pieItems.length>1&&(
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"1.25rem"}}>
             <PieChart items={pieItems} size={180}/>
-            <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",marginTop:"0.75rem",justifyContent:"center"}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"0.5rem",marginTop:"0.75rem",justifyContent:"center",padding:"0 0.5rem"}}>
               {pieItems.map((p,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:"0.7rem"}}>
+                <div key={i} style={{display:"flex",alignItems:"center",gap:5,fontSize:"0.72rem",background:C.elevated,borderRadius:8,padding:"0.25rem 0.5rem"}}>
                   <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0}}/>
-                  <span style={{color:C.white}}>{p.label}</span>
-                  <span style={{color:p.color}}>({p.pct}%)</span>
+                  <span style={{color:C.white,fontWeight:600}}>{p.label}</span>
+                  <span style={{color:p.color,fontWeight:700}}>{p.pct}%</span>
+                  <span style={{color:C.slate}}>{fmt(p.value)}</span>
                 </div>
               ))}
             </div>
@@ -282,6 +286,17 @@ function exportCSV(expenses) {
   URL.revokeObjectURL(url);
 }
 
+// ── BACKUP & RESTORE ───────────────────────────────────
+function exportBackup(expenses, income, period, budgetRule, budgetPcts, savedPeriods) {
+  const data = { income, period, expenses, budgetRule, budgetPcts, savedPeriods,
+    version:"1.1", exportedAt:new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `et-backup-${todayKey()}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── ADD VIEW ───────────────────────────────────────────
 function AddView({form,setForm,addExpense,etMood,remColor,remaining}) {
   return (
@@ -340,6 +355,7 @@ export default function App() {
   const [selCat,setSelCat]     = useState(null);
   const [editExp,setEditExp]   = useState(null);
   const [showReset,setShowReset] = useState(false);
+  const [searchTerm,setSearchTerm] = useState("");
   const [newMonthAlert,setNewMonthAlert] = useState(false);
   const [prevMonthLabel,setPrevMonthLabel] = useState("");
   const [selMonth,setSelMonth]   = useState(null);
@@ -391,8 +407,39 @@ export default function App() {
       .map(([ym,{spent,items}])=>({ym, spent, saved: totalIncome-spent, items}));
   },[expenses,totalIncome]);
 
-  function persist(ni,np,ne,br,bp,sp){saveData({income:ni,period:np,expenses:ne,budgetRule:br??budgetRule,budgetPcts:bp??budgetPcts,savedPeriods:sp??savedPeriods});}
+  function persist(ni,np,ne,br,bp,sp){
+    saveData({
+      income:      ni!==undefined ? ni : income,
+      period:      np!==undefined ? np : period,
+      expenses:    ne!==undefined ? ne : expenses,
+      budgetRule:  br!==undefined ? br : budgetRule,
+      budgetPcts:  bp!==undefined ? bp : budgetPcts,
+      savedPeriods:sp!==undefined ? sp : savedPeriods,
+    });
+  }
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
+
+  function handleImportBackup(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(data.income)    setIncome(data.income);
+        if(data.period)    setPeriod(data.period);
+        if(data.expenses)  setExpenses(data.expenses);
+        if(data.budgetRule)setBudgetRule(data.budgetRule);
+        if(data.budgetPcts)setBudgetPcts(data.budgetPcts);
+        if(data.savedPeriods)setSavedPeriods(data.savedPeriods);
+        persist(data.income,data.period,data.expenses,data.budgetRule,data.budgetPcts,data.savedPeriods);
+        showToast("✅ Backup restaurado");
+      }catch(err){
+        showToast("❌ Error al importar");
+      }
+    };
+    reader.readAsText(file);
+  }
 
   // Detect month change on load
   useMemo(()=>{
@@ -508,11 +555,19 @@ export default function App() {
                 <div style={{fontSize:"0.95rem",fontWeight:900,color:C.lime}}>ET</div>
               </div>
             </div>
-            <div style={{display:"flex",gap:"0.4rem"}}>
+            <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"flex-end"}}>
               <button onClick={()=>exportCSV(expenses)}
                 style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 📥 CSV
               </button>
+              <button onClick={()=>exportBackup(expenses,income,period,budgetRule,budgetPcts,savedPeriods)}
+                style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
+                💾 Backup
+              </button>
+              <label style={{background:C.border,color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
+                📂
+                <input type="file" accept=".json" onChange={handleImportBackup} style={{display:"none"}}/>
+              </label>
               <button onClick={()=>setShowReset(true)}
                 style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 🔄
@@ -596,6 +651,14 @@ export default function App() {
             <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
               Todos los gastos ({expenses.length})
             </div>
+            {expenses.length>0&&(
+              <input
+                type="text"
+                placeholder="🔍 Buscar descripción o nota..."
+                value={searchTerm}
+                onChange={e=>setSearchTerm(e.target.value)}
+                style={{...INP,marginBottom:"0.75rem",fontSize:"0.85rem"}}/>
+            )}
             {expenses.length===0?(
               <div style={{textAlign:"center",padding:"2rem 0",color:C.slate,fontSize:"0.85rem"}}>
                 <ET size={56} mood="sleepy"/>
@@ -603,7 +666,10 @@ export default function App() {
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
-                {expenses.map(e=>{
+                {expenses.filter(e=>
+                  e.desc.toLowerCase().includes(searchTerm.toLowerCase())||
+                  (e.note&&e.note.toLowerCase().includes(searchTerm.toLowerCase()))
+                ).map(e=>{
                   const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
                   return(
                     <div key={e.id} style={{background:C.card,borderRadius:11,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
@@ -778,11 +844,12 @@ export default function App() {
                             return pieItems.length>1?(
                               <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"0.75rem"}}>
                                 <PieChart items={pieItems} size={160}/>
-                                <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",marginTop:"0.5rem",justifyContent:"center"}}>
+                                <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",marginTop:"0.5rem",justifyContent:"center",padding:"0 0.25rem"}}>
                                   {pieItems.map((p,i)=>(
-                                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:"0.65rem"}}>
-                                      <div style={{width:7,height:7,borderRadius:"50%",background:p.color}}/>
-                                      <span style={{color:C.white}}>{p.label}</span>
+                                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:"0.65rem",background:C.elevated,borderRadius:6,padding:"0.2rem 0.4rem"}}>
+                                      <div style={{width:7,height:7,borderRadius:"50%",background:p.color,flexShrink:0}}/>
+                                      <span style={{color:C.white,fontWeight:600}}>{p.label}</span>
+                                      <span style={{color:p.color,fontWeight:700}}>{p.pct}%</span>
                                     </div>
                                   ))}
                                 </div>
@@ -1174,6 +1241,18 @@ export default function App() {
         )}
       </div>
 
+      {/* Floating + button */}
+      {tab!=="add"&&(
+        <button onClick={()=>setTab("add")}
+          style={{position:"fixed",bottom:85,right:"calc(50% - 220px)",width:58,height:58,
+            borderRadius:"50%",background:C.lime,color:C.bg,fontSize:"1.8rem",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            boxShadow:"0 10px 30px rgba(200,241,53,0.4)",
+            border:"none",zIndex:150,cursor:"pointer",fontFamily:"inherit"}}>
+          ＋
+        </button>
+      )}
+
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:C.card,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}}>
         {navItems.map(item=>{
           const active=tab===item.id, isAdd=item.id==="add";
@@ -1193,4 +1272,3 @@ export default function App() {
     </div>
   );
 }
-
