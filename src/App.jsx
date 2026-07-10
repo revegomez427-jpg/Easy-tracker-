@@ -115,48 +115,59 @@ function Ring({pct,color,size=72}) {
 function PieChart({items,size=200}) {
   const total=items.reduce((s,i)=>s+i.value,0);
   if(total===0)return null;
-  const cx=size/2, cy=size/2, r=size/2-16, inner=r*0.42;
-  const strokeW = r-inner;
-  const circumference = 2*Math.PI*r;
+  const pad=8; // padding so stroke doesn't get clipped
+  const cx=size/2, cy=size/2;
+  const r=(size/2)-pad-10;
+  const inner=r*0.45;
+  const strokeW=r-inner;
+  const circumference=2*Math.PI*r;
 
-  // Calculate pct and dasharray for each slice
-  let accumulated = 0;
-  const slices = items.map(item=>{
-    const pct = item.value/total;
-    const dash = pct * circumference;
-    const gap  = circumference - dash;
-    // offset: start at top (-25% of circumference) minus accumulated
-    const offset = circumference * 0.25 - accumulated;
-    accumulated += dash;
-    return { ...item, dash, gap, offset, pct: Math.round(pct*100) };
+  let accumulated=0;
+  const slices=items.map(item=>{
+    const pct=item.value/total;
+    const dash=pct*circumference;
+    const gap=circumference-dash;
+    const offset=circumference*0.25-accumulated;
+    accumulated+=dash;
+    return {...item, dash, gap, offset, pct:Math.round(pct*100)};
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {/* Background ring */}
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={strokeW}/>
-      {/* Slices — each circle is one slice */}
-      {slices.map((s,i)=>(
-        <circle key={i}
-          cx={cx} cy={cy} r={r}
-          fill="none"
-          stroke={s.color}
-          strokeWidth={strokeW}
-          strokeDasharray={`${s.dash} ${s.gap}`}
-          strokeDashoffset={s.offset}
-          strokeLinecap="butt"
-        />
-      ))}
-      {/* Center hole */}
-      <circle cx={cx} cy={cy} r={inner} fill={C.card}/>
-      {/* Total */}
-      <text x={cx} y={cy-4} textAnchor="middle" fill={C.white}
-        fontSize="11" fontWeight="800" fontFamily="Inter,sans-serif">
-        {fmt(total).replace("$","")}
-      </text>
-      <text x={cx} y={cy+9} textAnchor="middle" fill={C.slate}
-        fontSize="7" fontFamily="Inter,sans-serif">total</text>
-    </svg>
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+        style={{overflow:"visible"}}>
+        {/* Background */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={strokeW}/>
+        {/* Slices */}
+        {slices.map((s,i)=>(
+          <circle key={i} cx={cx} cy={cy} r={r}
+            fill="none" stroke={s.color} strokeWidth={strokeW}
+            strokeDasharray={`${s.dash} ${s.gap}`}
+            strokeDashoffset={s.offset}
+            strokeLinecap="butt"/>
+        ))}
+        {/* Center */}
+        <circle cx={cx} cy={cy} r={inner} fill={C.card}/>
+        <text x={cx} y={cy-4} textAnchor="middle" fill={C.white}
+          fontSize="12" fontWeight="800" fontFamily="Inter,sans-serif">
+          {fmt(total).replace("$","")}
+        </text>
+        <text x={cx} y={cy+10} textAnchor="middle" fill={C.slate}
+          fontSize="8" fontFamily="Inter,sans-serif">total</text>
+      </svg>
+      {/* Legend with percentages */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:"center",marginTop:"0.5rem",padding:"0 0.5rem"}}>
+        {slices.map((s,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:4,
+            background:C.elevated,borderRadius:8,padding:"0.2rem 0.5rem",fontSize:"0.7rem"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:s.color,flexShrink:0}}/>
+            <span style={{color:C.white,fontWeight:600}}>{s.label}</span>
+            <span style={{color:s.color,fontWeight:700}}>{s.pct}%</span>
+            <span style={{color:C.slate}}>{fmt(s.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -190,16 +201,7 @@ function CategoryModal({cat,expenses,onClose,onDelete,onEdit}) {
         {pieItems.length>1&&(
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"1.25rem"}}>
             <PieChart items={pieItems} size={180}/>
-            <div style={{display:"flex",flexWrap:"wrap",gap:"0.5rem",marginTop:"0.75rem",justifyContent:"center",padding:"0 0.5rem"}}>
-              {pieItems.map((p,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:5,fontSize:"0.72rem",background:C.elevated,borderRadius:8,padding:"0.25rem 0.5rem"}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:p.color,flexShrink:0}}/>
-                  <span style={{color:C.white,fontWeight:600}}>{p.label}</span>
-                  <span style={{color:p.color,fontWeight:700}}>{p.pct}%</span>
-                  <span style={{color:C.slate}}>{fmt(p.value)}</span>
-                </div>
-              ))}
-            </div>
+
           </div>
         )}
         <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>Todos los gastos</div>
@@ -844,15 +846,7 @@ export default function App() {
                             return pieItems.length>1?(
                               <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"0.75rem"}}>
                                 <PieChart items={pieItems} size={160}/>
-                                <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",marginTop:"0.5rem",justifyContent:"center",padding:"0 0.25rem"}}>
-                                  {pieItems.map((p,i)=>(
-                                    <div key={i} style={{display:"flex",alignItems:"center",gap:4,fontSize:"0.65rem",background:C.elevated,borderRadius:6,padding:"0.2rem 0.4rem"}}>
-                                      <div style={{width:7,height:7,borderRadius:"50%",background:p.color,flexShrink:0}}/>
-                                      <span style={{color:C.white,fontWeight:600}}>{p.label}</span>
-                                      <span style={{color:p.color,fontWeight:700}}>{p.pct}%</span>
-                                    </div>
-                                  ))}
-                                </div>
+
                               </div>
                             ):null;
                           })()}
