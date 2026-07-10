@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import ET from "./ET.jsx";
+import GoalView from "./GoalView.jsx";
 
 const C = {
   bg:       "#080f1e",
@@ -358,6 +359,7 @@ export default function App() {
   const [editExp,setEditExp]   = useState(null);
   const [showReset,setShowReset] = useState(false);
   const [searchTerm,setSearchTerm] = useState("");
+  const [goals,setGoals]           = useState(saved?.goals||[]);
   const [newMonthAlert,setNewMonthAlert] = useState(false);
   const [prevMonthLabel,setPrevMonthLabel] = useState("");
   const [selMonth,setSelMonth]   = useState(null);
@@ -419,6 +421,10 @@ export default function App() {
       savedPeriods:sp!==undefined ? sp : savedPeriods,
     });
   }
+  function persistGoals(newGoals){
+    saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals:newGoals});
+  }
+
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
 
   function handleImportBackup(e){
@@ -1128,6 +1134,7 @@ export default function App() {
     {id:"home",     icon:"📊", label:"Inicio"},
     {id:"calendar", icon:"📅", label:"Historial"},
     {id:"add",      icon:"＋",  label:"Agregar"},
+    {id:"goals",    icon:"🏆", label:"Metas"},
     {id:"budget",   icon:"🎯", label:"Presupuesto"},
   ];
 
@@ -1228,6 +1235,12 @@ export default function App() {
       <div style={{paddingBottom:70}}>
         {tab==="home"     && <HomeView/>}
         {tab==="budget"   && <BudgetView/>}
+        {tab==="goals"    && <GoalView
+          savedPeriods={savedPeriods}
+          showToast={showToast}
+          persistGoals={persistGoals}
+          goals={goals}
+          setGoals={setGoals}/>}
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
