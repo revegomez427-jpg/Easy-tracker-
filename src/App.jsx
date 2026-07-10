@@ -1238,11 +1238,12 @@ export default function App() {
       {/* Floating + button */}
       {tab!=="add"&&(
         <button onClick={()=>setTab("add")}
-          style={{position:"fixed",bottom:85,right:"calc(50% - 220px)",width:58,height:58,
+          style={{position:"fixed",bottom:80,right:20,width:58,height:58,
             borderRadius:"50%",background:C.lime,color:C.bg,fontSize:"1.8rem",
             display:"flex",alignItems:"center",justifyContent:"center",
             boxShadow:"0 10px 30px rgba(200,241,53,0.4)",
-            border:"none",zIndex:150,cursor:"pointer",fontFamily:"inherit"}}>
+            border:"none",zIndex:150,cursor:"pointer",fontFamily:"inherit",
+            maxWidth:"calc(50vw + 220px)"}}>
           ＋
         </button>
       )}
