@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 // ── HOME VIEW ─────────────────────────────────────────
 
@@ -18,20 +17,6 @@ function HomeView({
     expenses.forEach(e=>{if(!m[e.date])m[e.date]=[];m[e.date].push(e);});
     return m;
   },[expenses]);
-
-  // Savings by month for current period
-  const savingsByMonth = useMemo(()=>{
-    const perMonth={};
-    expenses.forEach(e=>{
-      const mk=e.date.slice(0,7);
-      if(!perMonth[mk])perMonth[mk]={spent:0,items:[]};
-      perMonth[mk].spent+=e.amount;
-      perMonth[mk].items.push(e);
-    });
-    return Object.entries(perMonth)
-      .sort(([a],[b])=>b.localeCompare(a))
-      .map(([ym,{spent,items}])=>({ym,spent,saved:totalIncome-spent,items}));
-  },[expenses,totalIncome]);
 
   const [selMonth, setSelMonth] = useState(null);
 
@@ -2146,4 +2131,12 @@ export default function App() {
   };
 
   const totalIncome = parseFloat(income)||0;
-  const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s
+  const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s+e.amount,0),[expenses]);
+  const remaining   = totalIncome-totalSpent;
+  const pct         = totalIncome>0?(totalSpent/totalIncome)*100:0;
+  const etMood      = pct===0?"sleepy":pct<50?"happy":pct<70?"cool":pct<90?"sweat":remaining<0?"cry":"sweat";
+  const remColor    = remaining<0?T.danger:remaining<totalIncome*0.1?T.warn:T.lime;
+  const periodObj   = PERIODS.find(p=>p.id===period);
+  const periodLabel = i[periodObj?.shortKey]||periodObj?.short||"período";
+
+  const byCategory =
