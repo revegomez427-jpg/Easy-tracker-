@@ -1,10 +1,9 @@
-
 import { useState, useMemo } from "react";
 import ET from "../components/ET.jsx";
 import Ring from "../components/Ring.jsx";
-import PieChart from "../components/PieChart.jsx";
-import CategoryModal from "../components/CategoryModal.jsx";
-import EditModal from "../components/EditModal.jsx";
+import PieChart from "../components/Piechart.jsx";
+import CategoryModal from "../components/Categorymodal.jsx";
+import EditModal from "../components/Editmodal.jsx";
 import { fmt, fmtKey, todayKey } from "../utils.js";
 import { CATEGORIES } from "../constants.js";
 
