@@ -353,6 +353,7 @@ export default function App() {
   const [selCat,setSelCat]     = useState(null);
   const [editExp,setEditExp]   = useState(null);
   const [showReset,setShowReset] = useState(false);
+  const [showMenu,setShowMenu]   = useState(false);
   const [searchTerm,setSearchTerm] = useState("");
   const [goals,setGoals]           = useState(saved?.goals||[]);
   const [themeId,setThemeId]       = useState(saved?.themeId||"dark");
@@ -570,32 +571,14 @@ export default function App() {
                 <div style={{fontSize:"0.95rem",fontWeight:900,color:T.lime}}>ET</div>
               </div>
             </div>
-            <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"flex-end"}}>
-              <button onClick={cycleTheme}
-                style={{background:T.border,border:"none",color:T.white,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.85rem",cursor:"pointer",fontFamily:"inherit"}}>
-                {THEMES[themeId].icon}
-              </button>
-              <button onClick={()=>exportCSV(expenses)}
-                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
-                📥 CSV
-              </button>
-              <button onClick={()=>exportBackup(expenses,income,period,budgetRule,budgetPcts,savedPeriods)}
-                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
-                💾 Backup
-              </button>
-              <label style={{background:T.border,color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
-                📂
-                <input type="file" accept=".json" onChange={handleImportBackup} style={{display:"none"}}/>
-              </label>
-              <button onClick={()=>setShowReset(true)}
-                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
-                🔄
-              </button>
-              <button onClick={()=>setScreen("setup")}
-                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
-                ✏️
-              </button>
-            </div>
+            <button onClick={()=>setShowMenu(true)}
+              style={{background:T.border,border:"none",color:T.white,borderRadius:10,
+                padding:"0.4rem 0.65rem",cursor:"pointer",fontFamily:"inherit",
+                display:"flex",flexDirection:"column",gap:"4px",alignItems:"center",justifyContent:"center"}}>
+              <div style={{width:18,height:2,background:T.white,borderRadius:2}}/>
+              <div style={{width:18,height:2,background:T.white,borderRadius:2}}/>
+              <div style={{width:18,height:2,background:T.white,borderRadius:2}}/>
+            </button>
           </div>
           <div style={{textAlign:"center",marginBottom:"1rem"}}>
             <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>
@@ -1210,7 +1193,136 @@ export default function App() {
         </div>
       )}
 
-      {/* Reset confirm */}}
+      {/* Slide-in menu from right */}
+      {showMenu&&(
+        <div style={{position:"fixed",inset:0,zIndex:500,display:"flex"}}
+          onClick={()=>setShowMenu(false)}>
+          {/* Dark overlay */}
+          <div style={{flex:1,background:"rgba(0,0,0,0.6)"}}/>
+          {/* Menu panel */}
+          <div style={{width:260,background:T.card,height:"100%",padding:"0",
+            boxShadow:"-8px 0 32px rgba(0,0,0,0.5)",display:"flex",flexDirection:"column"}}
+            onClick={e=>e.stopPropagation()}>
+            
+            {/* Menu header */}
+            <div style={{padding:"1.5rem 1.25rem 1rem",borderBottom:`1px solid ${T.border}`,
+              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontWeight:900,color:T.white,fontSize:"1rem"}}>Easy Tracker</div>
+                <div style={{fontSize:"0.7rem",color:T.slate}}>ET · Tu dinero, claro</div>
+              </div>
+              <button onClick={()=>setShowMenu(false)}
+                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,
+                  padding:"0.35rem 0.6rem",cursor:"pointer",fontFamily:"inherit",fontSize:"1rem"}}>
+                ✕
+              </button>
+            </div>
+
+            {/* Menu items */}
+            <div style={{flex:1,overflowY:"auto",padding:"0.75rem 0"}}>
+              
+              {/* Theme */}
+              <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
+                <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>Apariencia</div>
+                <button onClick={()=>{cycleTheme();}}
+                  style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                    border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                    fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                  <span style={{fontSize:"1.3rem"}}>{THEMES[themeId].icon}</span>
+                  <div>
+                    <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Tema: {THEMES[themeId].name}</div>
+                    <div style={{fontSize:"0.7rem",color:T.slate}}>Toca para cambiar</div>
+                  </div>
+                </button>
+              </div>
+
+              <div style={{height:1,background:T.border,margin:"0.5rem 1.25rem"}}/>
+
+              {/* Data options */}
+              <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
+                <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>Datos</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+                  
+                  <button onClick={()=>{exportCSV(expenses);setShowMenu(false);}}
+                    style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                      border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                      fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                    <span style={{fontSize:"1.2rem"}}>📥</span>
+                    <div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Exportar CSV</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>Descargar gastos</div>
+                    </div>
+                  </button>
+
+                  <button onClick={()=>{exportBackup(expenses,income,period,budgetRule,budgetPcts,savedPeriods);setShowMenu(false);}}
+                    style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                      border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                      fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                    <span style={{fontSize:"1.2rem"}}>💾</span>
+                    <div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Backup</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>Guardar copia de seguridad</div>
+                    </div>
+                  </button>
+
+                  <label style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                    border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                    display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:"1.2rem"}}>📂</span>
+                    <div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Restaurar</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>Importar backup</div>
+                    </div>
+                    <input type="file" accept=".json" onChange={(e)=>{handleImportBackup(e);setShowMenu(false);}} style={{display:"none"}}/>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{height:1,background:T.border,margin:"0.5rem 1.25rem"}}/>
+
+              {/* Settings */}
+              <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
+                <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>Configuración</div>
+                <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+
+                  <button onClick={()=>{setScreen("setup");setShowMenu(false);}}
+                    style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                      border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                      fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                    <span style={{fontSize:"1.2rem"}}>✏️</span>
+                    <div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Editar ingreso</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>Cambiar monto o período</div>
+                    </div>
+                  </button>
+
+                  <button onClick={()=>{setShowReset(true);setShowMenu(false);}}
+                    style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                      border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                      fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                    <span style={{fontSize:"1.2rem"}}>🔄</span>
+                    <div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Reiniciar período</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>Cerrar y empezar nuevo</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:"1rem 1.25rem",borderTop:`1px solid ${T.border}`,
+              textAlign:"center",fontSize:"0.7rem",color:T.slate}}>
+              ET v1.2 · Easy Tracker 🦉
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset confirm */}}}
       {showReset&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.25rem"}}>
           <div style={{background:T.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${T.border}`,textAlign:"center"}}>
