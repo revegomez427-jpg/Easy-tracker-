@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import ET from "./components/ET.jsx";
-import AddView from "./components/AddView.jsx";
+import AddView from "./components/Addview.jsx";
 import HomeView from "./views/HomeView.jsx";
 import CalendarView from "./views/CalendarView.jsx";
 import BudgetView from "./views/BudgetView.jsx";
