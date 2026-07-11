@@ -1,14 +1,11 @@
 import { useMemo } from "react";
 
+import { useState, useMemo } from "react";
+import { fmt, fmtMonth } from "./utils.js";
+
+const MONTHS_ES_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const MONTHS_ES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
-function fmt(n) {
-  return n.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
-}
-function fmtMonth(ym) {
-  const [y,m] = ym.split("-");
-  return `${MONTHS_ES[parseInt(m)-1]} ${y.slice(2)}`;
-}
 
 // ── MINI ET FACE ────────────────────────────────────────
 function MiniET({ mood="happy", size=28, C }) {
@@ -193,7 +190,7 @@ function BarChart({ data, C, size }) {
 }
 
 // ── TRENDS VIEW ─────────────────────────────────────────
-export default function TrendsView({ savedPeriods, expenses, income, C, i }) {
+export default function TrendsView({ savedPeriods, expenses, income, C, i, compact=false }) {
   const allPeriods = useMemo(()=>{
     // Combine closed periods + current period
     const now = new Date();
@@ -233,7 +230,7 @@ export default function TrendsView({ savedPeriods, expenses, income, C, i }) {
   const [chartType, setChartType] = useState("line");
 
   if(allPeriods.length < 2) return (
-    <div style={{padding:"1.5rem 1.25rem",paddingBottom:"6rem",textAlign:"center"}}>
+    <div style={{padding:compact?"1rem":"1.5rem 1.25rem",paddingBottom:compact?"0":"6rem",textAlign:"center"}}>
       <div style={{marginTop:"3rem"}}>
         <MiniET mood="sleepy" size={56} C={C}/>
         <div style={{fontSize:"1rem",fontWeight:700,color:C.white,marginTop:"1rem"}}>
@@ -248,9 +245,9 @@ export default function TrendsView({ savedPeriods, expenses, income, C, i }) {
   );
 
   return (
-    <div style={{padding:"1rem 1.25rem",paddingBottom:"6rem"}}>
-      {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
+    <div style={{padding:compact?"0.5rem":"1rem 1.25rem",paddingBottom:compact?"0":"6rem"}}>
+      {/* Header - hidden in compact mode */}
+      {!compact&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
         <div>
           <div style={{fontWeight:900,fontSize:"1.1rem",color:C.white}}>📈 Tendencias</div>
           <div style={{fontSize:"0.7rem",color:C.slate}}>{allPeriods.length} períodos analizados</div>
@@ -266,7 +263,7 @@ export default function TrendsView({ savedPeriods, expenses, income, C, i }) {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Stats cards */}
       {stats&&(
@@ -296,8 +293,8 @@ export default function TrendsView({ savedPeriods, expenses, income, C, i }) {
         }
       </div>
 
-      {/* Period list */}
-      <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",
+      {/* Period list - hidden in compact mode */}
+      {!compact&&<div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",
         letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
         Detalle por período
       </div>
@@ -338,10 +335,8 @@ export default function TrendsView({ savedPeriods, expenses, income, C, i }) {
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }
 
-// Need useState
-import { useState } from "react";
