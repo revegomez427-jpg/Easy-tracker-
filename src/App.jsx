@@ -1,4 +1,271 @@
 import { useState, useMemo } from "react";
+// ── RING ──────────────────────────────────────────────
+function Ring({ pct, color, size=72, C }) {
+  const r=28, circ=2*Math.PI*r;
+  const dash=Math.min(pct/100,1)*circ;
+  const stroke=pct>90?C.danger:pct>70?C.warn:color;
+  return (
+    <svg width={size} height={size} viewBox="0 0 72 72">
+      <circle cx="36" cy="36" r={r} fill="none" stroke={C.border} strokeWidth="6"/>
+      <circle cx="36" cy="36" r={r} fill="none" stroke={stroke} strokeWidth="6"
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        transform="rotate(-90 36 36)"
+        style={{transition:"stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)"}}/>
+      <text x="36" y="40" textAnchor="middle" fill={stroke} fontSize="11" fontWeight="800"
+        fontFamily="Inter,sans-serif">
+        {Math.round(pct)}%
+      </text>
+    </svg>
+  );
+}
+
+// ── PIE CHART ─────────────────────────────────────────
+
+function PieChart({ items, size=200, C }) {
+  const total = items.reduce((s,i)=>s+i.value,0);
+  if(total===0) return null;
+  const pad=8, cx=size/2, cy=size/2;
+  const r=(size/2)-pad-10, inner=r*0.45;
+  const strokeW=r-inner, circumference=2*Math.PI*r;
+
+  let accumulated=0;
+  const slices=items.map(item=>{
+    const pct=item.value/total;
+    const dash=pct*circumference;
+    const gap=circumference-dash;
+    const offset=circumference*0.25-accumulated;
+    accumulated+=dash;
+    return {...item, dash, gap, offset, pct:Math.round(pct*100)};
+  });
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+        style={{overflow:"visible"}}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={C.border} strokeWidth={strokeW}/>
+        {slices.map((s,i)=>(
+          <circle key={i} cx={cx} cy={cy} r={r}
+            fill="none" stroke={s.color} strokeWidth={strokeW}
+            strokeDasharray={`${s.dash} ${s.gap}`}
+            strokeDashoffset={s.offset}
+            strokeLinecap="butt"/>
+        ))}
+        <circle cx={cx} cy={cy} r={inner} fill={C.card}/>
+        <text x={cx} y={cy-4} textAnchor="middle" fill={C.white}
+          fontSize="12" fontWeight="800" fontFamily="Inter,sans-serif">
+          {fmt(total).replace("$","")}
+        </text>
+        <text x={cx} y={cy+10} textAnchor="middle" fill={C.slate}
+          fontSize="8" fontFamily="Inter,sans-serif">total</text>
+      </svg>
+      <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:"center",
+        marginTop:"0.5rem",padding:"0 0.5rem"}}>
+        {slices.map((s,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:4,
+            background:C.elevated,borderRadius:8,padding:"0.2rem 0.5rem",fontSize:"0.7rem"}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:s.color,flexShrink:0}}/>
+            <span style={{color:C.white,fontWeight:600}}>{s.label}</span>
+            <span style={{color:s.color,fontWeight:700}}>{s.pct}%</span>
+            <span style={{color:C.slate}}>{fmt(s.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── CATEGORY MODAL ────────────────────────────────────
+
+function CategoryModal({ cat, expenses, onClose, onDelete, onEdit, C }) {
+  const catExp = expenses.filter(e=>e.cat===cat.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const total = catExp.reduce((s,e)=>s+e.amount,0);
+  const byDesc = {};
+  catExp.forEach(e=>{ byDesc[e.desc]=(byDesc[e.desc]||0)+e.amount; });
+  const pieItems = Object.entries(byDesc).map(([label,value],i)=>({
+    label, value,
+    color:[cat.color,"#7c6af7","#38bdf8","#fb7185","#34d399","#f5a623","#a78bfa"][i%7],
+  }));
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:200,
+      display:"flex",flexDirection:"column",justifyContent:"flex-end"}}
+      onClick={onClose}>
+      <div style={{background:C.card,borderRadius:"20px 20px 0 0",padding:"1.5rem 1.25rem",
+        maxHeight:"85vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
+          <div>
+            <div style={{fontSize:"1.1rem",fontWeight:900,color:C.white}}>{cat.emoji} {cat.label}</div>
+            <div style={{fontSize:"0.75rem",color:C.slate}}>{catExp.length} gastos</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontWeight:800,color:cat.color,fontSize:"1.2rem"}}>{fmt(total)}</div>
+            <button onClick={onClose}
+              style={{background:C.border,border:"none",color:C.slate,borderRadius:8,
+                padding:"0.25rem 0.6rem",fontSize:"0.75rem",cursor:"pointer",
+                fontFamily:"inherit",marginTop:4}}>
+              ✕ Cerrar
+            </button>
+          </div>
+        </div>
+        {pieItems.length>1&&(
+          <div style={{marginBottom:"1.25rem"}}>
+            <PieChart items={pieItems} size={180} C={C}/>
+          </div>
+        )}
+        <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",
+          letterSpacing:"0.08em",marginBottom:"0.6rem"}}>Todos los gastos</div>
+        <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
+          {catExp.map(e=>(
+            <div key={e.id} style={{background:C.elevated,borderRadius:11,
+              padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:"0.65rem"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:"0.85rem",color:C.white}}>{e.desc}</div>
+                  {e.note&&<div style={{fontSize:"0.7rem",color:C.lime,marginTop:2}}>📝 {e.note}</div>}
+                  <div style={{fontSize:"0.65rem",color:C.slate,marginTop:2}}>{fmtKey(e.date)}</div>
+                </div>
+                <div style={{fontWeight:700,color:C.danger,fontSize:"0.85rem",whiteSpace:"nowrap"}}>
+                  -{fmt(e.amount)}
+                </div>
+                <button onClick={()=>onEdit(e)}
+                  style={{background:"none",border:"none",color:C.lime,cursor:"pointer",fontSize:"0.85rem"}}>✏️</button>
+                <button onClick={()=>onDelete(e.id)}
+                  style={{background:"none",border:"none",color:C.slate,cursor:"pointer",fontSize:"0.85rem"}}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EDIT MODAL ────────────────────────────────────────
+
+function EditModal({ expense, onSave, onClose, C, i }) {
+  const [desc,setDesc]     = useState(expense.desc);
+  const [amount,setAmount] = useState(String(expense.amount));
+  const [note,setNote]     = useState(expense.note||"");
+  const [cat,setCat]       = useState(expense.cat);
+
+  const inp = {
+    width:"100%", padding:"0.8rem 1rem",
+    background: C.isLight ? "#F5E6F0" : C.border,
+    border:`1.5px solid ${C.border}`,
+    borderRadius:12, color:C.white, fontSize:"0.95rem",
+    outline:"none", boxSizing:"border-box", fontFamily:"inherit",
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:300,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:"1.25rem"}}
+      onClick={onClose}>
+      <div style={{background:C.card,borderRadius:20,padding:"1.5rem",width:"100%",
+        maxWidth:380,border:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontWeight:800,fontSize:"1rem",color:C.white,marginBottom:"1.25rem"}}>
+          {i?.editExpense||"✏️ Editar gasto"}
+        </div>
+        <select value={cat} onChange={e=>setCat(e.target.value)}
+          style={{...inp,marginBottom:"0.75rem",cursor:"pointer"}}>
+          {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </select>
+        <input value={desc} onChange={e=>setDesc(e.target.value)}
+          placeholder={i?.description||"Descripción"}
+          style={{...inp,marginBottom:"0.75rem"}} autoComplete="off"/>
+        <div style={{position:"relative",marginBottom:"0.75rem"}}>
+          <span style={{position:"absolute",left:12,top:"50%",
+            transform:"translateY(-50%)",color:C.lime,fontWeight:800}}>$</span>
+          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
+            placeholder="0.00" style={{...inp,paddingLeft:"1.75rem"}}/>
+        </div>
+        <input value={note} onChange={e=>setNote(e.target.value)}
+          placeholder={i?.noteHint||"Nota (opcional)"}
+          style={{...inp,marginBottom:"1rem"}} autoComplete="off"/>
+        <div style={{display:"flex",gap:"0.5rem"}}>
+          <button onClick={onClose}
+            style={{flex:1,padding:"0.8rem",background:C.border,border:"none",
+              borderRadius:12,color:C.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+            {i?.cancel||"Cancelar"}
+          </button>
+          <button onClick={()=>{
+            const amt=parseFloat(amount);
+            if(!desc.trim()||isNaN(amt)||amt<=0)return;
+            onSave({...expense,desc,amount:amt,note,cat});
+          }}
+            style={{flex:2,padding:"0.8rem",background:C.lime,border:"none",
+              borderRadius:12,color:C.bg,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
+            {i?.save||"Guardar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── ADD VIEW ──────────────────────────────────────────
+
+function AddView({ form, setForm, addExpense, etMood, remColor, remaining, i, T }) {
+  const tc = T || {};
+  const ti = i || {};
+  const inputStyle = {
+    width:"100%", padding:"0.8rem 1rem",
+    background: tc.isLight ? "#F5E6F0" : tc.border,
+    border:`1.5px solid ${tc.border}`,
+    borderRadius:12, color:tc.white, fontSize:"0.95rem",
+    outline:"none", boxSizing:"border-box", fontFamily:"inherit",
+  };
+
+  return (
+    <div style={{padding:"1.5rem 1.25rem",paddingBottom:"6rem",
+      background:tc.bg,minHeight:"100svh"}}>
+      <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+        <ET size={56} mood={etMood}/>
+        <div style={{fontSize:"0.75rem",color:tc.slate,marginTop:4}}>
+          Disponible: <span style={{color:remColor,fontWeight:700}}>{fmt(remaining)}</span>
+        </div>
+      </div>
+      <div style={{background:tc.card,borderRadius:16,padding:"1.25rem",
+        border:`1px solid ${tc.border}`}}>
+        <div style={{fontSize:"0.7rem",color:tc.slate,textTransform:"uppercase",
+          letterSpacing:"0.08em",marginBottom:"0.75rem"}}>
+          {ti.newExpense||"Nuevo gasto"} — {fmtKey(todayKey())}
+        </div>
+        <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}
+          style={{...inputStyle,marginBottom:"0.75rem",cursor:"pointer"}}>
+          {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </select>
+        <input
+          placeholder={ti.description||"Descripción"}
+          value={form.desc}
+          autoComplete="off" autoCorrect="off" spellCheck="false"
+          onChange={e=>setForm(f=>({...f,desc:e.target.value}))}
+          style={{...inputStyle,marginBottom:"0.75rem"}}/>
+        <input
+          placeholder={ti.noteHint||"Nota (opcional)"}
+          value={form.note||""}
+          autoComplete="off"
+          onChange={e=>setForm(f=>({...f,note:e.target.value}))}
+          style={{...inputStyle,marginBottom:"0.75rem"}}/>
+        <div style={{position:"relative",marginBottom:"1rem"}}>
+          <span style={{position:"absolute",left:12,top:"50%",
+            transform:"translateY(-50%)",color:tc.lime,fontWeight:800}}>$</span>
+          <input type="number" placeholder="0.00" value={form.amount}
+            onChange={e=>setForm(f=>({...f,amount:e.target.value}))}
+            onKeyDown={e=>e.key==="Enter"&&addExpense()}
+            style={{...inputStyle,paddingLeft:"1.75rem"}}/>
+        </div>
+        <button onClick={addExpense}
+          style={{width:"100%",padding:"0.9rem",background:tc.lime,border:"none",
+            borderRadius:12,color:tc.bg,fontWeight:900,fontSize:"1rem",
+            cursor:"pointer",fontFamily:"inherit"}}>
+          {ti.saveExpense||"Guardar gasto"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 
 // ET — Mascota de Easy Tracker
 // Rediseñado estilo caricatura moderna (referencia búho verde)
@@ -350,7 +617,6 @@ function ET({ size = 80, mood = "happy" }) {
   );
 }
 
-import AddView from "./components/Addview.jsx";
 import HomeView from "./views/HomeView.jsx";
 import CalendarView from "./views/CalendarView.jsx";
 import BudgetView from "./views/BudgetView.jsx";
