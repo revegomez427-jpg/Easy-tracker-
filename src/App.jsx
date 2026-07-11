@@ -1133,7 +1133,6 @@ export default function App() {
   const navItems=[
     {id:"home",     icon:"📊", label:"Inicio"},
     {id:"calendar", icon:"📅", label:"Historial"},
-    {id:"add",      icon:"＋",  label:"Agregar"},
     {id:"goals",    icon:"🏆", label:"Metas"},
     {id:"budget",   icon:"🎯", label:"Presupuesto"},
   ];
