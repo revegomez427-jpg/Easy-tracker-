@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 // ── HOME VIEW ─────────────────────────────────────────
 
@@ -1145,7 +1146,7 @@ function GoalView({ savedPeriods, showToast, persistGoals, goals, setGoals, them
 
 // ── TRENDS VIEW ───────────────────────────────────────
 
-const MONTHS_ES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MONTHS_ES_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 
 // ── MINI ET FACE ────────────────────────────────────────
@@ -1257,7 +1258,7 @@ function LineChart({ data, C, size }) {
       {data.map((d,i)=>(
         <text key={i} x={xPos(i)} y={H-padB+16}
           textAnchor="middle" fontSize="8" fill={C.slate} fontFamily="Inter,sans-serif">
-          {fmtMonth(d.ym)}
+          {fmtMonthShort(d.ym)}
         </text>
       ))}
 
@@ -1321,7 +1322,7 @@ function BarChart({ data, C, size }) {
             </text>
             <text x={xPos(i)} y={H-padB+16} textAnchor="middle"
               fontSize="8" fill={C.slate} fontFamily="Inter,sans-serif">
-              {fmtMonth(d.ym)}
+              {fmtMonthShort(d.ym)}
             </text>
           </g>
         );
@@ -2145,4 +2146,4 @@ export default function App() {
   };
 
   const totalIncome = parseFloat(income)||0;
-  const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s+e.amount,0),[ex
+  const totalSpent  = useMemo(()=>expenses.reduce((s,e)=>s
