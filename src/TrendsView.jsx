@@ -291,48 +291,51 @@ export default function TrendsView({ savedPeriods, expenses, income, C, i, compa
       </div>
 
       {/* Period list - hidden in compact mode */}
-      {!compact&&<div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",
-        letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-        Detalle por período
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
-        {[...allPeriods].reverse().map((p,idx)=>{
-          const isPos = p.saved >= 0;
-          const pct   = p.income>0 ? Math.min((p.spent/p.income)*100,100) : 0;
-          const mood  = p.saved>=p.income*0.2?"cool":isPos?"happy":p.saved>=-p.income*0.1?"sweat":"cry";
-          return (
-            <div key={idx} style={{background:C.card,borderRadius:12,padding:"0.75rem 1rem",
-              border:`1px solid ${C.border}`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <MiniET mood={mood} size={24} C={C}/>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:"0.85rem",color:C.white}}>{p.label}</div>
-                    <div style={{fontSize:"0.6rem",color:C.slate}}>
-                      Ingreso: <span style={{color:C.white}}>{fmt(p.income)}</span>
+      {!compact&&(
+        <div>
+          <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",
+            letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
+            Detalle por período
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
+            {[...allPeriods].reverse().map((p,idx)=>{
+              const isPos = p.saved >= 0;
+              const pct   = p.income>0 ? Math.min((p.spent/p.income)*100,100) : 0;
+              const mood  = p.saved>=p.income*0.2?"cool":isPos?"happy":p.saved>=-p.income*0.1?"sweat":"cry";
+              return (
+                <div key={idx} style={{background:C.card,borderRadius:12,padding:"0.75rem 1rem",
+                  border:`1px solid ${C.border}`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <MiniET mood={mood} size={24} C={C}/>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:"0.85rem",color:C.white}}>{p.label}</div>
+                        <div style={{fontSize:"0.6rem",color:C.slate}}>
+                          Ingreso: <span style={{color:C.white}}>{fmt(p.income)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:800,fontSize:"0.9rem",color:isPos?C.lime:C.danger}}>
+                        {isPos?"+":""}{fmt(p.saved)}
+                      </div>
+                      <div style={{fontSize:"0.6rem",color:C.slate}}>Gastado: {fmt(p.spent)}</div>
                     </div>
                   </div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontWeight:800,fontSize:"0.9rem",color:isPos?C.lime:C.danger}}>
-                    {isPos?"+":""}{fmt(p.saved)}
+                  <div style={{height:4,background:C.border,borderRadius:999,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${pct}%`,
+                      background:pct>90?C.danger:pct>70?C.warn:C.lime,
+                      borderRadius:999,transition:"width 0.5s ease"}}/>
                   </div>
-                  <div style={{fontSize:"0.6rem",color:C.slate}}>Gastado: {fmt(p.spent)}</div>
+                  <div style={{fontSize:"0.6rem",color:C.slate,marginTop:3}}>
+                    {Math.round(pct)}% del ingreso gastado
+                  </div>
                 </div>
-              </div>
-              {/* Progress bar */}
-              <div style={{height:4,background:C.border,borderRadius:999,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${pct}%`,
-                  background:pct>90?C.danger:pct>70?C.warn:C.lime,
-                  borderRadius:999,transition:"width 0.5s ease"}}/>
-              </div>
-              <div style={{fontSize:"0.6rem",color:C.slate,marginTop:3}}>
-                {Math.round(pct)}% del ingreso gastado
-              </div>
-            </div>
-          );
-        })}
-      </div>}
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
