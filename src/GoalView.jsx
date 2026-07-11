@@ -1,18 +1,9 @@
 import { useState, useMemo } from "react";
+import { fmt, todayKey, fmtDate } from "./utils.js";
+import { CATEGORIES } from "./constants.js";
 
 // C is passed as theme prop from App
 
-function fmt(n) {
-  return n.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
-}
-function todayKey() {
-  const d=new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
-function fmtDate(key) {
-  const [y,m,d]=key.split("-");
-  return `${d}/${m}/${y}`;
-}
 
 // ── WALKING ET ─────────────────────────────────────────
 function WalkingET({ size=56, mood="happy", flip=false, C }) {
