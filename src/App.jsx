@@ -3,7 +3,11 @@ import ET from "./ET.jsx";
 import GoalView from "./GoalView.jsx";
 import { THEMES, THEME_ORDER } from "./themes.js";
 
-// C is now dynamic per theme — see state inside App
+// Base colors — components outside App use dark theme defaults
+const C = {
+  bg:"#080f1e", card:"#0d1526", elevated:"#152038", border:"#1c2d4a",
+  lime:"#c8f135", slate:"#4a6080", white:"#f0f4ff", danger:"#ff5e5e", warn:"#f5a623",
+};
 
 const PERIODS = [
   { id: "weekly",   label: "Semanal",   short: "semana"   },
@@ -352,7 +356,7 @@ export default function App() {
   const [searchTerm,setSearchTerm] = useState("");
   const [goals,setGoals]           = useState(saved?.goals||[]);
   const [themeId,setThemeId]       = useState(saved?.themeId||"dark");
-  const C = THEMES[themeId] || THEMES.dark;
+  const T = THEMES[themeId] || THEMES.dark; // T = active theme colors
   const [newMonthAlert,setNewMonthAlert] = useState(false);
   const [prevMonthLabel,setPrevMonthLabel] = useState("");
   const [selMonth,setSelMonth]   = useState(null);
@@ -372,9 +376,9 @@ export default function App() {
                : remaining < 0 ? "cry"
                : "sweat";
   // Keep owlEye/owlMood for backward compat
-  const owlEye  = pct>90?C.danger:pct>70?C.warn:C.lime;
+  const owlEye  = pct>90?T.danger:pct>70?T.warn:T.lime;
   const owlMood = pct>90?"alert":"happy";
-  const remColor    = remaining<0?C.danger:remaining<totalIncome*0.1?C.warn:C.lime;
+  const remColor    = remaining<0?T.danger:remaining<totalIncome*0.1?T.warn:T.lime;
   const periodLabel = PERIODS.find(p=>p.id===period)?.short||"período";
 
   const byDate=useMemo(()=>{
@@ -515,37 +519,37 @@ export default function App() {
 
   // ── SETUP ──────────────────────────────────────────
   if(screen==="setup") return (
-    <div style={{minHeight:"100svh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'Inter',sans-serif",padding:"1.5rem"}}>
+    <div style={{minHeight:"100svh",background:T.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'Inter',sans-serif",padding:"1.5rem"}}>
       <ET size={96} mood="happy"/>
       <div style={{display:"flex",alignItems:"baseline",gap:6,margin:"0.5rem 0 2px"}}>
-        <span style={{fontSize:"2rem",fontWeight:900,color:C.white}}>Easy</span>
-        <span style={{fontSize:"2rem",fontWeight:900,color:C.lime}}>Tracker</span>
+        <span style={{fontSize:"2rem",fontWeight:900,color:T.white}}>Easy</span>
+        <span style={{fontSize:"2rem",fontWeight:900,color:T.lime}}>Tracker</span>
       </div>
-      <p style={{color:C.slate,fontSize:"0.75rem",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"2rem"}}>ET · Tu dinero, claro</p>
-      <div style={{width:"100%",maxWidth:340,background:C.card,borderRadius:20,padding:"1.75rem 1.5rem",boxShadow:"0 32px 64px rgba(0,0,0,0.5)"}}>
-        <p style={{color:C.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>¿Cada cuánto cobras?</p>
+      <p style={{color:T.slate,fontSize:"0.75rem",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"2rem"}}>ET · Tu dinero, claro</p>
+      <div style={{width:"100%",maxWidth:340,background:T.card,borderRadius:20,padding:"1.75rem 1.5rem",boxShadow:"0 32px 64px rgba(0,0,0,0.5)"}}>
+        <p style={{color:T.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>¿Cada cuánto cobras?</p>
         <div style={{display:"flex",gap:"0.4rem",marginBottom:"1.25rem"}}>
           {PERIODS.map(p=>(
             <button key={p.id} onClick={()=>setPeriod(p.id)}
-              style={{flex:1,padding:"0.6rem 0",border:`1.5px solid ${period===p.id?C.lime:C.border}`,
-                borderRadius:10,background:period===p.id?`${C.lime}18`:C.border,
-                color:period===p.id?C.lime:C.slate,fontWeight:period===p.id?800:400,
+              style={{flex:1,padding:"0.6rem 0",border:`1.5px solid ${period===p.id?T.lime:T.border}`,
+                borderRadius:10,background:period===p.id?`${T.lime}18`:T.border,
+                color:period===p.id?T.lime:T.slate,fontWeight:period===p.id?800:400,
                 fontSize:"0.8rem",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
               {p.label}
             </button>
           ))}
         </div>
-        <p style={{color:C.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>
+        <p style={{color:T.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>
           ¿Cuánto cobras por {PERIODS.find(p=>p.id===period)?.short}?
         </p>
         <div style={{position:"relative",marginBottom:"1rem"}}>
-          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:C.lime,fontWeight:800,fontSize:"1.1rem"}}>$</span>
+          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:T.lime,fontWeight:800,fontSize:"1.1rem"}}>$</span>
           <input type="number" placeholder="0.00" value={income}
             onChange={e=>setIncome(e.target.value)} autoFocus
-            style={{...INP,paddingLeft:"2.2rem",fontSize:"1.4rem",fontWeight:800,textAlign:"center",border:`1.5px solid ${C.lime}40`}}/>
+            style={{...INP,paddingLeft:"2.2rem",fontSize:"1.4rem",fontWeight:800,textAlign:"center",border:`1.5px solid ${T.lime}40`}}/>
         </div>
         <button onClick={()=>{if(income){persist(income,period,expenses);setScreen("main");}}}
-          style={{width:"100%",padding:"0.9rem",background:C.lime,border:"none",borderRadius:12,color:C.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>
+          style={{width:"100%",padding:"0.9rem",background:T.lime,border:"none",borderRadius:12,color:T.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>
           {saved?.income?"Guardar cambios":"Comenzar →"}
         </button>
       </div>
@@ -557,51 +561,51 @@ export default function App() {
     return (
       <div style={{paddingBottom:"6rem"}}>
         {/* Header */}
-        <div style={{background:C.card,padding:"1.25rem 1.25rem 1rem",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{background:T.card,padding:"1.25rem 1.25rem 1rem",borderBottom:`1px solid ${T.border}`}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <ET size={38} mood={etMood}/>
               <div>
-                <div style={{fontSize:"0.6rem",color:C.slate,letterSpacing:"0.1em",textTransform:"uppercase"}}>Easy Tracker</div>
-                <div style={{fontSize:"0.95rem",fontWeight:900,color:C.lime}}>ET</div>
+                <div style={{fontSize:"0.6rem",color:T.slate,letterSpacing:"0.1em",textTransform:"uppercase"}}>Easy Tracker</div>
+                <div style={{fontSize:"0.95rem",fontWeight:900,color:T.lime}}>ET</div>
               </div>
             </div>
             <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"flex-end"}}>
               <button onClick={cycleTheme}
-                style={{background:C.border,border:"none",color:C.white,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.85rem",cursor:"pointer",fontFamily:"inherit"}}>
+                style={{background:T.border,border:"none",color:T.white,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.85rem",cursor:"pointer",fontFamily:"inherit"}}>
                 {THEMES[themeId].icon}
               </button>
               <button onClick={()=>exportCSV(expenses)}
-                style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
+                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 📥 CSV
               </button>
               <button onClick={()=>exportBackup(expenses,income,period,budgetRule,budgetPcts,savedPeriods)}
-                style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
+                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 💾 Backup
               </button>
-              <label style={{background:C.border,color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
+              <label style={{background:T.border,color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",display:"inline-flex",alignItems:"center"}}>
                 📂
                 <input type="file" accept=".json" onChange={handleImportBackup} style={{display:"none"}}/>
               </label>
               <button onClick={()=>setShowReset(true)}
-                style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
+                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 🔄
               </button>
               <button onClick={()=>setScreen("setup")}
-                style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
+                style={{background:T.border,border:"none",color:T.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 ✏️
               </button>
             </div>
           </div>
           <div style={{textAlign:"center",marginBottom:"1rem"}}>
-            <div style={{fontSize:"0.65rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>
+            <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>
               Disponible esta {periodLabel}
             </div>
             <div style={{fontSize:"2.75rem",fontWeight:900,color:remColor,letterSpacing:-1,lineHeight:1}}>{fmt(remaining)}</div>
             {savedPeriods.length>0&&(
-              <div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:6,background:C.elevated,borderRadius:20,padding:"0.25rem 0.75rem"}}>
-                <span style={{fontSize:"0.7rem",color:C.slate}}>💰 Ahorrado:</span>
-                <span style={{fontSize:"0.8rem",fontWeight:800,color:C.lime}}>
+              <div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:6,background:T.elevated,borderRadius:20,padding:"0.25rem 0.75rem"}}>
+                <span style={{fontSize:"0.7rem",color:T.slate}}>💰 Ahorrado:</span>
+                <span style={{fontSize:"0.8rem",fontWeight:800,color:T.lime}}>
                   {fmt(savedPeriods.reduce((s,p)=>s+(p.saved>0?p.saved:0),0))}
                 </span>
               </div>
@@ -609,26 +613,26 @@ export default function App() {
           </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{textAlign:"center"}}>
-              <div style={{fontSize:"0.65rem",color:C.slate,textTransform:"uppercase",marginBottom:2}}>Cobrado</div>
-              <div style={{fontWeight:700,color:C.white}}>{fmt(totalIncome)}</div>
+              <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",marginBottom:2}}>Cobrado</div>
+              <div style={{fontWeight:700,color:T.white}}>{fmt(totalIncome)}</div>
             </div>
-            <Ring pct={pct} color={C.lime} size={70}/>
+            <Ring pct={pct} color={T.lime} size={70}/>
             <div style={{textAlign:"center"}}>
-              <div style={{fontSize:"0.65rem",color:C.slate,textTransform:"uppercase",marginBottom:2}}>Gastado</div>
-              <div style={{fontWeight:700,color:C.danger}}>{fmt(totalSpent)}</div>
+              <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",marginBottom:2}}>Gastado</div>
+              <div style={{fontWeight:700,color:T.danger}}>{fmt(totalSpent)}</div>
             </div>
           </div>
-          <div style={{marginTop:"1rem",height:5,background:C.border,borderRadius:999,overflow:"hidden"}}>
-            <div style={{height:"100%",width:`${Math.min(pct,100)}%`,background:pct>90?C.danger:pct>70?C.warn:C.lime,borderRadius:999,transition:"width 0.5s ease"}}/>
+          <div style={{marginTop:"1rem",height:5,background:T.border,borderRadius:999,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${Math.min(pct,100)}%`,background:pct>90?T.danger:pct>70?T.warn:T.lime,borderRadius:999,transition:"width 0.5s ease"}}/>
           </div>
 
           {/* Sub-tabs */}
           <div style={{display:"flex",gap:"0.5rem",marginTop:"1rem"}}>
             {["gastos","savings"].map(t=>(
               <button key={t} onClick={()=>setHomeTab(t)}
-                style={{flex:1,padding:"0.5rem",border:`1.5px solid ${homeTab===t?C.lime:C.border}`,
-                  borderRadius:10,background:homeTab===t?`${C.lime}18`:C.elevated,
-                  color:homeTab===t?C.lime:C.slate,fontWeight:homeTab===t?800:400,
+                style={{flex:1,padding:"0.5rem",border:`1.5px solid ${homeTab===t?T.lime:T.border}`,
+                  borderRadius:10,background:homeTab===t?`${T.lime}18`:T.elevated,
+                  color:homeTab===t?T.lime:T.slate,fontWeight:homeTab===t?800:400,
                   fontSize:"0.8rem",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
                 {t==="gastos"?"📊 Gastos":"💰 Savings"}
               </button>
@@ -641,8 +645,8 @@ export default function App() {
           <div style={{padding:"1rem 1.25rem"}}>
             {Object.keys(byCategory).length>0&&(
               <>
-                <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-                  Por categoría <span style={{color:C.lime,fontWeight:400,textTransform:"none",letterSpacing:0}}>· toca para detalles</span>
+                <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
+                  Por categoría <span style={{color:T.lime,fontWeight:400,textTransform:"none",letterSpacing:0}}>· toca para detalles</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.5rem",marginBottom:"1.25rem"}}>
                   {CATEGORIES.filter(c=>byCategory[c.id]).map(cat=>{
@@ -650,12 +654,12 @@ export default function App() {
                     const cp=totalIncome>0?(amt/totalIncome)*100:0;
                     return(
                       <button key={cat.id} onClick={()=>setSelCat(cat)}
-                        style={{background:C.card,borderRadius:12,padding:"0.65rem",display:"flex",alignItems:"center",gap:8,border:`1px solid ${C.border}`,cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
+                        style={{background:T.card,borderRadius:12,padding:"0.65rem",display:"flex",alignItems:"center",gap:8,border:`1px solid ${T.border}`,cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
                         <Ring pct={cp} color={cat.color} size={48}/>
                         <div style={{minWidth:0}}>
-                          <div style={{fontSize:"0.7rem",color:C.slate}}>{cat.emoji} {cat.label}</div>
+                          <div style={{fontSize:"0.7rem",color:T.slate}}>{cat.emoji} {cat.label}</div>
                           <div style={{fontWeight:700,color:cat.color,fontSize:"0.9rem"}}>{fmt(amt)}</div>
-                          <div style={{fontSize:"0.6rem",color:C.slate}}>{expenses.filter(e=>e.cat===cat.id).length} gastos</div>
+                          <div style={{fontSize:"0.6rem",color:T.slate}}>{expenses.filter(e=>e.cat===cat.id).length} gastos</div>
                         </div>
                       </button>
                     );
@@ -663,7 +667,7 @@ export default function App() {
                 </div>
               </>
             )}
-            <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
+            <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
               Todos los gastos ({expenses.length})
             </div>
             {expenses.length>0&&(
@@ -675,9 +679,9 @@ export default function App() {
                 style={{...INP,marginBottom:"0.75rem",fontSize:"0.85rem"}}/>
             )}
             {expenses.length===0?(
-              <div style={{textAlign:"center",padding:"2rem 0",color:C.slate,fontSize:"0.85rem"}}>
+              <div style={{textAlign:"center",padding:"2rem 0",color:T.slate,fontSize:"0.85rem"}}>
                 <ET size={56} mood="sleepy"/>
-                <div style={{marginTop:"0.75rem"}}>Sin gastos aún.<br/>Toca <strong style={{color:C.lime}}>＋</strong> para agregar.</div>
+                <div style={{marginTop:"0.75rem"}}>Sin gastos aún.<br/>Toca <strong style={{color:T.lime}}>＋</strong> para agregar.</div>
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
@@ -687,17 +691,17 @@ export default function App() {
                 ).map(e=>{
                   const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
                   return(
-                    <div key={e.id} style={{background:C.card,borderRadius:11,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
+                    <div key={e.id} style={{background:T.card,borderRadius:11,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
                       <div style={{display:"flex",alignItems:"center",gap:"0.65rem"}}>
                         <span style={{fontSize:"1rem"}}>{cat.emoji}</span>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontWeight:600,fontSize:"0.85rem",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
-                          {e.note&&<div style={{fontSize:"0.65rem",color:C.lime}}>📝 {e.note}</div>}
-                          <div style={{fontSize:"0.65rem",color:C.slate}}>{fmtKey(e.date)} · {cat.label}</div>
+                          {e.note&&<div style={{fontSize:"0.65rem",color:T.lime}}>📝 {e.note}</div>}
+                          <div style={{fontSize:"0.65rem",color:T.slate}}>{fmtKey(e.date)} · {cat.label}</div>
                         </div>
-                        <div style={{fontWeight:700,color:C.danger,fontSize:"0.85rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</div>
-                        <button onClick={()=>setEditExp(e)} style={{background:"none",border:"none",color:C.lime,cursor:"pointer",fontSize:"0.8rem",padding:"0.1rem"}}>✏️</button>
-                        <button onClick={()=>delExpense(e.id)} style={{background:"none",border:"none",color:C.slate,cursor:"pointer",fontSize:"0.85rem",padding:"0.1rem"}}>✕</button>
+                        <div style={{fontWeight:700,color:T.danger,fontSize:"0.85rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</div>
+                        <button onClick={()=>setEditExp(e)} style={{background:"none",border:"none",color:T.lime,cursor:"pointer",fontSize:"0.8rem",padding:"0.1rem"}}>✏️</button>
+                        <button onClick={()=>delExpense(e.id)} style={{background:"none",border:"none",color:T.slate,cursor:"pointer",fontSize:"0.85rem",padding:"0.1rem"}}>✕</button>
                       </div>
                     </div>
                   );
@@ -714,12 +718,12 @@ export default function App() {
             {(()=>{
               const totalSaved = savedPeriods.reduce((s,p)=>s+(p.saved>0?p.saved:0),0);
               return (
-                <div style={{background:C.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${C.border}`,marginBottom:"1rem"}}>
-                  <div style={{fontSize:"0.65rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>💰 Ahorro acumulado total</div>
-                  <div style={{fontSize:"2rem",fontWeight:900,color:totalSaved>0?C.lime:C.slate}}>
+                <div style={{background:T.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${T.border}`,marginBottom:"1rem"}}>
+                  <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:4}}>💰 Ahorro acumulado total</div>
+                  <div style={{fontSize:"2rem",fontWeight:900,color:totalSaved>0?T.lime:T.slate}}>
                     {fmt(totalSaved)}
                   </div>
-                  <div style={{fontSize:"0.7rem",color:C.slate,marginTop:4}}>
+                  <div style={{fontSize:"0.7rem",color:T.slate,marginTop:4}}>
                     De {savedPeriods.length} período{savedPeriods.length!==1?"s":""} cerrado{savedPeriods.length!==1?"s":""}
                     {savedPeriods.length===0 && " — reinicia un período para empezar a acumular"}
                   </div>
@@ -727,14 +731,14 @@ export default function App() {
               );
             })()}
 
-            <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-              Períodos cerrados — <span style={{color:C.lime,textTransform:"none"}}>toca para ver gastos</span>
+            <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
+              Períodos cerrados — <span style={{color:T.lime,textTransform:"none"}}>toca para ver gastos</span>
             </div>
 
             {/* Current period always shown first */}
             {expenses.length>0&&(
               <>
-                <div style={{fontSize:"0.7rem",color:C.lime,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.5rem"}}>
+                <div style={{fontSize:"0.7rem",color:T.lime,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.5rem"}}>
                   Período actual
                 </div>
                 {(()=>{
@@ -747,30 +751,30 @@ export default function App() {
                   });
                   const isOpen=selMonth==="current";
                   return(
-                    <div style={{background:C.card,borderRadius:12,border:`1px solid ${C.lime}40`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`,overflow:"hidden",marginBottom:"1rem"}}>
+                    <div style={{background:T.card,borderRadius:12,border:`1px solid ${T.lime}40`,borderLeft:`3px solid ${isPos?T.lime:T.danger}`,overflow:"hidden",marginBottom:"1rem"}}>
                       <button onClick={()=>setSelMonth(isOpen?null:"current")}
                         style={{width:"100%",padding:"0.85rem 1rem",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
                           <div>
-                            <span style={{fontWeight:700,fontSize:"0.9rem",color:C.lime}}>
+                            <span style={{fontWeight:700,fontSize:"0.9rem",color:T.lime}}>
                               {(()=>{const d=new Date();return `${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`;})()}
                             </span>
-                            <div style={{fontSize:"0.6rem",color:C.slate}}>Ingreso: {fmt(totalIncome)}</div>
+                            <div style={{fontSize:"0.6rem",color:T.slate}}>Ingreso: {fmt(totalIncome)}</div>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?C.lime:C.danger}}>
+                            <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?T.lime:T.danger}}>
                               {isPos?"+":"-"}{fmt(Math.abs(remaining))}
                             </span>
-                            <span style={{color:C.slate,fontSize:"0.8rem"}}>{isOpen?"▲":"▼"}</span>
+                            <span style={{color:T.slate,fontSize:"0.8rem"}}>{isOpen?"▲":"▼"}</span>
                           </div>
                         </div>
-                        <div style={{fontSize:"0.65rem",color:C.slate,display:"flex",justifyContent:"space-between"}}> 
-                          <span>Gastado: <span style={{color:C.white}}>{fmt(totalSpent)}</span></span>
+                        <div style={{fontSize:"0.65rem",color:T.slate,display:"flex",justifyContent:"space-between"}}> 
+                          <span>Gastado: <span style={{color:T.white}}>{fmt(totalSpent)}</span></span>
                           <span>{expenses.length} gastos</span>
                         </div>
                       </button>
                       {isOpen&&(
-                        <div style={{borderTop:`1px solid ${C.border}`,padding:"0.75rem 1rem"}}>
+                        <div style={{borderTop:`1px solid ${T.border}`,padding:"0.75rem 1rem"}}>
                           {pieItems.length>1&&(
                             <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:"0.75rem"}}>
                               <PieChart items={pieItems} size={160}/>
@@ -780,14 +784,14 @@ export default function App() {
                             {expenses.map(e=>{
                               const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
                               return(
-                                <div key={e.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",background:C.elevated,borderRadius:8,padding:"0.5rem 0.65rem",borderLeft:`2px solid ${cat.color}`}}>
+                                <div key={e.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",background:T.elevated,borderRadius:8,padding:"0.5rem 0.65rem",borderLeft:`2px solid ${cat.color}`}}>
                                   <span>{cat.emoji}</span>
                                   <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontSize:"0.8rem",fontWeight:600,color:C.white,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
-                                    {e.note&&<div style={{fontSize:"0.65rem",color:C.lime}}>📝 {e.note}</div>}
-                                    <div style={{fontSize:"0.6rem",color:C.slate}}>{fmtKey(e.date)}</div>
+                                    <div style={{fontSize:"0.8rem",fontWeight:600,color:T.white,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
+                                    {e.note&&<div style={{fontSize:"0.65rem",color:T.lime}}>📝 {e.note}</div>}
+                                    <div style={{fontSize:"0.6rem",color:T.slate}}>{fmtKey(e.date)}</div>
                                   </div>
-                                  <div style={{fontWeight:700,color:C.danger,fontSize:"0.8rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</div>
+                                  <div style={{fontWeight:700,color:T.danger,fontSize:"0.8rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</div>
                                 </div>
                               );
                             })}
@@ -802,12 +806,12 @@ export default function App() {
 
             {/* Closed periods */}
             {savedPeriods.length>0&&(
-              <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.5rem"}}>
+              <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.5rem"}}>
                 Períodos anteriores
               </div>
             )}
             {savedPeriods.length===0&&expenses.length===0?(
-              <div style={{textAlign:"center",padding:"2rem 0",color:C.slate,fontSize:"0.85rem"}}>
+              <div style={{textAlign:"center",padding:"2rem 0",color:T.slate,fontSize:"0.85rem"}}>
                 <div style={{fontSize:"2rem",marginBottom:"0.5rem"}}>🔄</div>
                 <div>Agrega gastos y cuando reinicies<br/>se guardarán aquí.</div>
               </div>
@@ -820,34 +824,34 @@ export default function App() {
                   const isOpen=selMonth===id;
                   const ym=id; const items=pExp;
                   return(
-                    <div key={ym} style={{background:C.card,borderRadius:12,border:`1px solid ${C.border}`,borderLeft:`3px solid ${isPos?C.lime:C.danger}`,overflow:"hidden"}}>
+                    <div key={ym} style={{background:T.card,borderRadius:12,border:`1px solid ${T.border}`,borderLeft:`3px solid ${isPos?T.lime:T.danger}`,overflow:"hidden"}}>
                       {/* Month header — tappable */}
                       <button onClick={()=>setSelMonth(isOpen?null:ym)}
                         style={{width:"100%",padding:"0.85rem 1rem",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.4rem"}}>
                           <div>
-                            <span style={{fontWeight:700,fontSize:"0.9rem",color:C.white}}>{label}</span>
-                            <div style={{fontSize:"0.6rem",color:C.slate}}>Ingreso: {fmt(pIncome)}</div>
+                            <span style={{fontWeight:700,fontSize:"0.9rem",color:T.white}}>{label}</span>
+                            <div style={{fontSize:"0.6rem",color:T.slate}}>Ingreso: {fmt(pIncome)}</div>
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?C.lime:C.danger}}>
+                            <span style={{fontWeight:800,fontSize:"0.95rem",color:isPos?T.lime:T.danger}}>
                               {isPos?"+":"−"}{fmt(Math.abs(saved))}
                             </span>
-                            <span style={{color:C.slate,fontSize:"0.8rem"}}>{isOpen?"▲":"▼"}</span>
+                            <span style={{color:T.slate,fontSize:"0.8rem"}}>{isOpen?"▲":"▼"}</span>
                           </div>
                         </div>
-                        <div style={{height:4,background:C.border,borderRadius:999,overflow:"hidden",marginBottom:"0.35rem"}}>
-                          <div style={{height:"100%",width:`${barW}%`,background:isPos?C.lime:C.danger,borderRadius:999}}/>
+                        <div style={{height:4,background:T.border,borderRadius:999,overflow:"hidden",marginBottom:"0.35rem"}}>
+                          <div style={{height:"100%",width:`${barW}%`,background:isPos?T.lime:T.danger,borderRadius:999}}/>
                         </div>
-                        <div style={{fontSize:"0.65rem",color:C.slate,display:"flex",justifyContent:"space-between"}}>
-                          <span>Gastado: <span style={{color:C.white}}>{fmt(spent)}</span></span>
+                        <div style={{fontSize:"0.65rem",color:T.slate,display:"flex",justifyContent:"space-between"}}>
+                          <span>Gastado: <span style={{color:T.white}}>{fmt(spent)}</span></span>
                           <span>{items.length} gastos</span>
                         </div>
                       </button>
 
                       {/* Expanded detail */}
                       {isOpen&&(
-                        <div style={{borderTop:`1px solid ${C.border}`,padding:"0.75rem 1rem"}}>
+                        <div style={{borderTop:`1px solid ${T.border}`,padding:"0.75rem 1rem"}}>
                           {/* Pie chart by category */}
                           {(()=>{
                             const byCat={};
@@ -868,14 +872,14 @@ export default function App() {
                             {[...items].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
                               const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
                               return(
-                                <div key={e.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",background:C.elevated,borderRadius:9,padding:"0.55rem 0.65rem",borderLeft:`2px solid ${cat.color}`}}>
+                                <div key={e.id} style={{display:"flex",alignItems:"center",gap:"0.5rem",background:T.elevated,borderRadius:9,padding:"0.55rem 0.65rem",borderLeft:`2px solid ${cat.color}`}}>
                                   <span style={{fontSize:"0.9rem"}}>{cat.emoji}</span>
                                   <div style={{flex:1,minWidth:0}}>
-                                    <div style={{fontWeight:600,fontSize:"0.8rem",color:C.white,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
-                                    {e.note&&<div style={{fontSize:"0.6rem",color:C.lime}}>📝 {e.note}</div>}
-                                    <div style={{fontSize:"0.6rem",color:C.slate}}>{fmtKey(e.date)}</div>
+                                    <div style={{fontWeight:600,fontSize:"0.8rem",color:T.white,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
+                                    {e.note&&<div style={{fontSize:"0.6rem",color:T.lime}}>📝 {e.note}</div>}
+                                    <div style={{fontSize:"0.6rem",color:T.slate}}>{fmtKey(e.date)}</div>
                                   </div>
-                                  <span style={{fontWeight:700,color:C.danger,fontSize:"0.8rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</span>
+                                  <span style={{fontWeight:700,color:T.danger,fontSize:"0.8rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</span>
                                 </div>
                               );
                             })}
@@ -907,7 +911,7 @@ export default function App() {
     const GROUPS = [
       { id:"needs",    label:"🔴 Necesidades", desc:"Renta, Bills, Salud, Transporte", color:"#fb7185" },
       { id:"personal", label:"🟡 Personal",    desc:"Comida, Personal, Préstamo, Otro", color:"#f5a623" },
-      { id:"saving",   label:"🟢 Ahorro",      desc:"Meta de ahorro",                   color:C.lime    },
+      { id:"saving",   label:"🟢 Ahorro",      desc:"Meta de ahorro",                   color:T.lime    },
     ];
 
     // Spent by group this period
@@ -959,25 +963,25 @@ export default function App() {
       <div style={{padding:"1rem 1.25rem", paddingBottom:"6rem"}}>
         {/* Header */}
         <div style={{textAlign:"center", marginBottom:"1.25rem"}}>
-          <div style={{fontSize:"1.1rem", fontWeight:900, color:C.white}}>🎯 Presupuesto</div>
-          <div style={{fontSize:"0.75rem", color:C.slate, marginTop:2}}>Basado en tu ingreso de {fmt(totalIncome)}</div>
+          <div style={{fontSize:"1.1rem", fontWeight:900, color:T.white}}>🎯 Presupuesto</div>
+          <div style={{fontSize:"0.75rem", color:T.slate, marginTop:2}}>Basado en tu ingreso de {fmt(totalIncome)}</div>
         </div>
 
         {/* Rule selector */}
-        <div style={{fontSize:"0.7rem", color:C.slate, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.6rem"}}>
+        <div style={{fontSize:"0.7rem", color:T.slate, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.6rem"}}>
           Elige tu regla
         </div>
         <div style={{display:"flex", flexDirection:"column", gap:"0.4rem", marginBottom:"1.25rem"}}>
           {RULES.map(rule=>(
             <button key={rule.id} onClick={()=>applyRule(rule)}
-              style={{padding:"0.75rem 1rem", border:`1.5px solid ${budgetRule===rule.id?C.lime:C.border}`,
-                borderRadius:12, background:budgetRule===rule.id?`${C.lime}15`:C.card,
+              style={{padding:"0.75rem 1rem", border:`1.5px solid ${budgetRule===rule.id?T.lime:T.border}`,
+                borderRadius:12, background:budgetRule===rule.id?`${T.lime}15`:T.card,
                 cursor:"pointer", fontFamily:"inherit", textAlign:"left", transition:"all 0.2s"}}>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                <span style={{fontWeight:800, fontSize:"0.95rem", color:budgetRule===rule.id?C.lime:C.white}}>{rule.label}</span>
-                {budgetRule===rule.id && <span style={{color:C.lime, fontSize:"0.8rem"}}>✓ Activa</span>}
+                <span style={{fontWeight:800, fontSize:"0.95rem", color:budgetRule===rule.id?T.lime:T.white}}>{rule.label}</span>
+                {budgetRule===rule.id && <span style={{color:T.lime, fontSize:"0.8rem"}}>✓ Activa</span>}
               </div>
-              <div style={{fontSize:"0.7rem", color:C.slate, marginTop:2}}>{rule.desc}</div>
+              <div style={{fontSize:"0.7rem", color:T.slate, marginTop:2}}>{rule.desc}</div>
             </button>
           ))}
         </div>
@@ -985,7 +989,7 @@ export default function App() {
         {/* Sliders / adjusters */}
         {budgetRule && (
           <>
-            <div style={{fontSize:"0.7rem", color:C.slate, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.6rem"}}>
+            <div style={{fontSize:"0.7rem", color:T.slate, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:"0.6rem"}}>
               Ajusta los porcentajes — suman {budgetPcts.needs+budgetPcts.personal+budgetPcts.saving}%
             </div>
             <div style={{display:"flex", flexDirection:"column", gap:"0.75rem", marginBottom:"1.25rem"}}>
@@ -996,37 +1000,37 @@ export default function App() {
                 const spentPct = limit>0 ? Math.min((spent/limit)*100,100) : 0;
                 const overBudget = spent > limit;
                 return (
-                  <div key={g.id} style={{background:C.card, borderRadius:14, padding:"1rem", border:`1px solid ${C.border}`, borderLeft:`3px solid ${g.color}`}}>
+                  <div key={g.id} style={{background:T.card, borderRadius:14, padding:"1rem", border:`1px solid ${T.border}`, borderLeft:`3px solid ${g.color}`}}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"0.5rem"}}>
                       <div>
-                        <div style={{fontWeight:700, fontSize:"0.9rem", color:C.white}}>{g.label}</div>
-                        <div style={{fontSize:"0.65rem", color:C.slate}}>{g.desc}</div>
+                        <div style={{fontWeight:700, fontSize:"0.9rem", color:T.white}}>{g.label}</div>
+                        <div style={{fontSize:"0.65rem", color:T.slate}}>{g.desc}</div>
                       </div>
                       <div style={{textAlign:"right"}}>
                         <div style={{fontWeight:900, fontSize:"1.1rem", color:g.color}}>{pct}%</div>
-                        <div style={{fontSize:"0.65rem", color:C.slate}}>{fmt(limit)}</div>
+                        <div style={{fontSize:"0.65rem", color:T.slate}}>{fmt(limit)}</div>
                       </div>
                     </div>
                     {/* +/- buttons */}
                     <div style={{display:"flex", alignItems:"center", gap:"0.5rem", marginBottom:"0.6rem"}}>
                       <button onClick={()=>adjustPct(g.id,-5)}
-                        style={{width:32, height:32, borderRadius:8, background:C.border, border:"none", color:C.white, fontSize:"1.1rem", cursor:"pointer", fontFamily:"inherit"}}>−</button>
-                      <div style={{flex:1, height:6, background:C.border, borderRadius:999, overflow:"hidden"}}>
+                        style={{width:32, height:32, borderRadius:8, background:T.border, border:"none", color:T.white, fontSize:"1.1rem", cursor:"pointer", fontFamily:"inherit"}}>−</button>
+                      <div style={{flex:1, height:6, background:T.border, borderRadius:999, overflow:"hidden"}}>
                         <div style={{height:"100%", width:`${pct}%`, background:g.color, borderRadius:999, transition:"width 0.3s ease"}}/>
                       </div>
                       <button onClick={()=>adjustPct(g.id,5)}
-                        style={{width:32, height:32, borderRadius:8, background:C.border, border:"none", color:C.white, fontSize:"1.1rem", cursor:"pointer", fontFamily:"inherit"}}>+</button>
+                        style={{width:32, height:32, borderRadius:8, background:T.border, border:"none", color:T.white, fontSize:"1.1rem", cursor:"pointer", fontFamily:"inherit"}}>+</button>
                     </div>
                     {/* Spent vs limit */}
-                    <div style={{fontSize:"0.65rem", color:C.slate, marginBottom:"0.3rem"}}>
-                      Gastado: <span style={{color:overBudget?C.danger:C.white, fontWeight:600}}>{fmt(spent)}</span>
+                    <div style={{fontSize:"0.65rem", color:T.slate, marginBottom:"0.3rem"}}>
+                      Gastado: <span style={{color:overBudget?T.danger:T.white, fontWeight:600}}>{fmt(spent)}</span>
                       {" / "}<span style={{color:g.color}}>{fmt(limit)}</span>
                     </div>
-                    <div style={{height:4, background:C.border, borderRadius:999, overflow:"hidden"}}>
-                      <div style={{height:"100%", width:`${spentPct}%`, background:overBudget?C.danger:g.color, borderRadius:999, transition:"width 0.5s ease"}}/>
+                    <div style={{height:4, background:T.border, borderRadius:999, overflow:"hidden"}}>
+                      <div style={{height:"100%", width:`${spentPct}%`, background:overBudget?T.danger:g.color, borderRadius:999, transition:"width 0.5s ease"}}/>
                     </div>
                     {overBudget && (
-                      <div style={{fontSize:"0.65rem", color:C.danger, marginTop:"0.3rem", fontWeight:600}}>
+                      <div style={{fontSize:"0.65rem", color:T.danger, marginTop:"0.3rem", fontWeight:600}}>
                         ⚠️ Excediste por {fmt(spent-limit)}
                       </div>
                     )}
@@ -1038,7 +1042,7 @@ export default function App() {
         )}
 
         {!budgetRule && (
-          <div style={{textAlign:"center", padding:"2rem 0", color:C.slate, fontSize:"0.85rem"}}>
+          <div style={{textAlign:"center", padding:"2rem 0", color:T.slate, fontSize:"0.85rem"}}>
             <div style={{fontSize:"2.5rem", marginBottom:"0.75rem"}}>🎯</div>
             Elige una regla arriba para activar tu presupuesto.
           </div>
@@ -1060,14 +1064,14 @@ export default function App() {
       <div style={{padding:"1rem 1.25rem",paddingBottom:"6rem"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1rem"}}>
           <button onClick={()=>setCalMonth(new Date(year,month-1,1))}
-            style={{background:C.card,border:`1px solid ${C.border}`,color:C.white,borderRadius:8,padding:"0.4rem 0.75rem",cursor:"pointer",fontSize:"1rem"}}>‹</button>
-          <span style={{fontWeight:800,fontSize:"1rem",color:C.white}}>{MONTHS_ES[month]} {year}</span>
+            style={{background:T.card,border:`1px solid ${T.border}`,color:T.white,borderRadius:8,padding:"0.4rem 0.75rem",cursor:"pointer",fontSize:"1rem"}}>‹</button>
+          <span style={{fontWeight:800,fontSize:"1rem",color:T.white}}>{MONTHS_ES[month]} {year}</span>
           <button onClick={()=>setCalMonth(new Date(year,month+1,1))}
-            style={{background:C.card,border:`1px solid ${C.border}`,color:C.white,borderRadius:8,padding:"0.4rem 0.75rem",cursor:"pointer",fontSize:"1rem"}}>›</button>
+            style={{background:T.card,border:`1px solid ${T.border}`,color:T.white,borderRadius:8,padding:"0.4rem 0.75rem",cursor:"pointer",fontSize:"1rem"}}>›</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:"0.4rem"}}>
           {DAYS_ES.map(d=>(
-            <div key={d} style={{textAlign:"center",fontSize:"0.65rem",color:C.slate,fontWeight:700,padding:"0.3rem 0"}}>{d}</div>
+            <div key={d} style={{textAlign:"center",fontSize:"0.65rem",color:T.slate,fontWeight:700,padding:"0.3rem 0"}}>{d}</div>
           ))}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"0.25rem"}}>
@@ -1079,57 +1083,57 @@ export default function App() {
             const isToday=key===todayStr, isSel=key===selDay;
             return(
               <button key={key} onClick={()=>setSelDay(isSel?null:key)}
-                style={{background:isSel?C.lime:hasExp?C.elevated:C.card,
-                  border:isToday?`2px solid ${C.lime}`:`1px solid ${C.border}`,
+                style={{background:isSel?T.lime:hasExp?T.elevated:T.card,
+                  border:isToday?`2px solid ${T.lime}`:`1px solid ${T.border}`,
                   borderRadius:10,padding:"0.4rem 0.2rem",cursor:hasExp?"pointer":"default",
                   display:"flex",flexDirection:"column",alignItems:"center",gap:1,minHeight:44,transition:"background 0.2s"}}>
-                <span style={{fontSize:"0.85rem",fontWeight:isToday?900:600,color:isSel?C.bg:isToday?C.lime:C.white}}>{d}</span>
-                {hasExp&&<span style={{fontSize:"0.55rem",color:isSel?C.bg:C.danger,fontWeight:700}}>-{fmt(dayTotal).replace("$","")}</span>}
-                {hasExp&&<div style={{width:4,height:4,borderRadius:"50%",background:isSel?C.bg:C.lime}}/>}
+                <span style={{fontSize:"0.85rem",fontWeight:isToday?900:600,color:isSel?T.bg:isToday?T.lime:T.white}}>{d}</span>
+                {hasExp&&<span style={{fontSize:"0.55rem",color:isSel?T.bg:T.danger,fontWeight:700}}>-{fmt(dayTotal).replace("$","")}</span>}
+                {hasExp&&<div style={{width:4,height:4,borderRadius:"50%",background:isSel?T.bg:T.lime}}/>}
               </button>
             );
           })}
         </div>
         {selDay&&byDate[selDay]&&(
-          <div style={{marginTop:"1.25rem",background:C.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${C.border}`}}>
+          <div style={{marginTop:"1.25rem",background:T.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${T.border}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.75rem"}}>
               <div>
-                <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.06em"}}>{fmtKeyLong(selDay)}</div>
-                <div style={{fontWeight:800,color:C.danger,fontSize:"1.1rem"}}>-{fmt(byDate[selDay].reduce((s,e)=>s+e.amount,0))}</div>
+                <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.06em"}}>{fmtKeyLong(selDay)}</div>
+                <div style={{fontWeight:800,color:T.danger,fontSize:"1.1rem"}}>-{fmt(byDate[selDay].reduce((s,e)=>s+e.amount,0))}</div>
               </div>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:"0.7rem",color:C.slate}}>Gastos ese día</div>
-                <div style={{fontWeight:700,color:C.white}}>{byDate[selDay].length}</div>
+                <div style={{fontSize:"0.7rem",color:T.slate}}>Gastos ese día</div>
+                <div style={{fontWeight:700,color:T.white}}>{byDate[selDay].length}</div>
               </div>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
               {byDate[selDay].map(e=>{
                 const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
                 return(
-                  <div key={e.id} style={{background:C.elevated,borderRadius:10,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
+                  <div key={e.id} style={{background:T.elevated,borderRadius:10,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
                     <div style={{display:"flex",alignItems:"center",gap:"0.75rem"}}>
                       <span style={{fontSize:"1.1rem"}}>{cat.emoji}</span>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontWeight:600,fontSize:"0.85rem",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{e.desc}</div>
-                        {e.note&&<div style={{fontSize:"0.65rem",color:C.lime}}>📝 {e.note}</div>}
-                        <div style={{fontSize:"0.7rem",color:C.slate}}>{cat.label}</div>
+                        {e.note&&<div style={{fontSize:"0.65rem",color:T.lime}}>📝 {e.note}</div>}
+                        <div style={{fontSize:"0.7rem",color:T.slate}}>{cat.label}</div>
                       </div>
-                      <div style={{fontWeight:700,color:C.danger,fontSize:"0.9rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</div>
-                      <button onClick={()=>setEditExp(e)} style={{background:"none",border:"none",color:C.lime,cursor:"pointer",fontSize:"0.85rem",padding:"0.2rem"}}>✏️</button>
-                      <button onClick={()=>delExpense(e.id)} style={{background:"none",border:"none",color:C.slate,cursor:"pointer",fontSize:"0.9rem",padding:"0.2rem"}}>✕</button>
+                      <div style={{fontWeight:700,color:T.danger,fontSize:"0.9rem",whiteSpace:"nowrap"}}>-{fmt(e.amount)}</div>
+                      <button onClick={()=>setEditExp(e)} style={{background:"none",border:"none",color:T.lime,cursor:"pointer",fontSize:"0.85rem",padding:"0.2rem"}}>✏️</button>
+                      <button onClick={()=>delExpense(e.id)} style={{background:"none",border:"none",color:T.slate,cursor:"pointer",fontSize:"0.9rem",padding:"0.2rem"}}>✕</button>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div style={{marginTop:"0.75rem",padding:"0.6rem 0.75rem",background:C.elevated,borderRadius:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:"0.75rem",color:C.slate}}>Balance total restante</span>
+            <div style={{marginTop:"0.75rem",padding:"0.6rem 0.75rem",background:T.elevated,borderRadius:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:"0.75rem",color:T.slate}}>Balance total restante</span>
               <span style={{fontWeight:800,color:remColor,fontSize:"0.95rem"}}>{fmt(remaining)}</span>
             </div>
           </div>
         )}
         {selDay&&!byDate[selDay]&&(
-          <div style={{marginTop:"1.25rem",background:C.card,borderRadius:16,padding:"1.5rem",textAlign:"center",color:C.slate,fontSize:"0.85rem"}}>
+          <div style={{marginTop:"1.25rem",background:T.card,borderRadius:16,padding:"1.5rem",textAlign:"center",color:T.slate,fontSize:"0.85rem"}}>
             Sin gastos registrados ese día.
           </div>
         )}
@@ -1145,10 +1149,10 @@ export default function App() {
   ];
 
   return(
-    <div style={{minHeight:"100svh",background:C.bg,fontFamily:"'Inter',sans-serif",color:C.white,maxWidth:480,margin:"0 auto",position:"relative"}}>
+    <div style={{minHeight:"100svh",background:T.bg,fontFamily:"'Inter',sans-serif",color:T.white,maxWidth:480,margin:"0 auto",position:"relative"}}>
 
       {toast&&(
-        <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:C.lime,color:C.bg,padding:"0.5rem 1.25rem",borderRadius:999,fontWeight:700,fontSize:"0.85rem",zIndex:999,whiteSpace:"nowrap",boxShadow:`0 8px 24px rgba(200,241,53,0.3)`}}>
+        <div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:T.lime,color:T.bg,padding:"0.5rem 1.25rem",borderRadius:999,fontWeight:700,fontSize:"0.85rem",zIndex:999,whiteSpace:"nowrap",boxShadow:`0 8px 24px rgba(200,241,53,0.3)`}}>
           {toast}
         </div>
       )}
@@ -1156,27 +1160,27 @@ export default function App() {
       {/* New month alert */}
       {newMonthAlert&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.25rem"}}>
-          <div style={{background:C.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${C.lime}40`,textAlign:"center"}}>
+          <div style={{background:T.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${T.lime}40`,textAlign:"center"}}>
             <ET size={72} mood="cool"/>
-            <div style={{fontWeight:900,color:C.lime,fontSize:"1.1rem",marginTop:"0.75rem",marginBottom:"0.25rem"}}>
+            <div style={{fontWeight:900,color:T.lime,fontSize:"1.1rem",marginTop:"0.75rem",marginBottom:"0.25rem"}}>
               ¡Nuevo mes!
             </div>
-            <div style={{fontSize:"0.85rem",color:C.slate,marginBottom:"1rem"}}>
-              ¿Cerramos <span style={{color:C.white,fontWeight:700}}>{prevMonthLabel}</span> y lo guardamos en Savings?
+            <div style={{fontSize:"0.85rem",color:T.slate,marginBottom:"1rem"}}>
+              ¿Cerramos <span style={{color:T.white,fontWeight:700}}>{prevMonthLabel}</span> y lo guardamos en Savings?
             </div>
-            <div style={{background:C.elevated,borderRadius:12,padding:"0.75rem",marginBottom:"1.25rem"}}>
+            <div style={{background:T.elevated,borderRadius:12,padding:"0.75rem",marginBottom:"1.25rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
-                <span style={{fontSize:"0.75rem",color:C.slate}}>Gastado</span>
-                <span style={{fontSize:"0.75rem",color:C.danger,fontWeight:700}}>{fmt(totalSpent)}</span>
+                <span style={{fontSize:"0.75rem",color:T.slate}}>Gastado</span>
+                <span style={{fontSize:"0.75rem",color:T.danger,fontWeight:700}}>{fmt(totalSpent)}</span>
               </div>
               <div style={{display:"flex",justifyContent:"space-between"}}>
-                <span style={{fontSize:"0.75rem",color:C.slate}}>Sobró</span>
-                <span style={{fontSize:"0.75rem",color:remaining>=0?C.lime:C.danger,fontWeight:700}}>{fmt(Math.abs(remaining))}</span>
+                <span style={{fontSize:"0.75rem",color:T.slate}}>Sobró</span>
+                <span style={{fontSize:"0.75rem",color:remaining>=0?T.lime:T.danger,fontWeight:700}}>{fmt(Math.abs(remaining))}</span>
               </div>
             </div>
             <div style={{display:"flex",gap:"0.5rem"}}>
               <button onClick={()=>setNewMonthAlert(false)}
-                style={{flex:1,padding:"0.8rem",background:C.border,border:"none",borderRadius:12,color:C.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                style={{flex:1,padding:"0.8rem",background:T.border,border:"none",borderRadius:12,color:T.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                 Después
               </button>
               <button onClick={()=>{
@@ -1198,7 +1202,7 @@ export default function App() {
                 setNewMonthAlert(false);
                 showToast(`✓ ${prevMonthLabel} guardado en Savings`);
               }}
-                style={{flex:2,padding:"0.8rem",background:C.lime,border:"none",borderRadius:12,color:C.bg,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
+                style={{flex:2,padding:"0.8rem",background:T.lime,border:"none",borderRadius:12,color:T.bg,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
                 Cerrar y guardar
               </button>
             </div>
@@ -1209,17 +1213,17 @@ export default function App() {
       {/* Reset confirm */}}
       {showReset&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"1.25rem"}}>
-          <div style={{background:C.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${C.border}`,textAlign:"center"}}>
+          <div style={{background:T.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${T.border}`,textAlign:"center"}}>
             <div style={{fontSize:"2rem",marginBottom:"0.5rem"}}>🔄</div>
-            <div style={{fontWeight:800,color:C.white,marginBottom:"0.5rem"}}>¿Reiniciar período?</div>
-            <div style={{fontSize:"0.8rem",color:C.slate,marginBottom:"1.25rem"}}>Se borrarán todos los gastos del período actual. El historial de Savings se mantiene.</div>
+            <div style={{fontWeight:800,color:T.white,marginBottom:"0.5rem"}}>¿Reiniciar período?</div>
+            <div style={{fontSize:"0.8rem",color:T.slate,marginBottom:"1.25rem"}}>Se borrarán todos los gastos del período actual. El historial de Savings se mantiene.</div>
             <div style={{display:"flex",gap:"0.5rem"}}>
               <button onClick={()=>setShowReset(false)}
-                style={{flex:1,padding:"0.8rem",background:C.border,border:"none",borderRadius:12,color:C.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                style={{flex:1,padding:"0.8rem",background:T.border,border:"none",borderRadius:12,color:T.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                 Cancelar
               </button>
               <button onClick={resetPeriod}
-                style={{flex:1,padding:"0.8rem",background:C.danger,border:"none",borderRadius:12,color:C.white,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
+                style={{flex:1,padding:"0.8rem",background:T.danger,border:"none",borderRadius:12,color:T.white,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
                 Sí, reiniciar
               </button>
             </div>
@@ -1247,7 +1251,7 @@ export default function App() {
           persistGoals={persistGoals}
           goals={goals}
           setGoals={setGoals}
-          theme={C}/>}
+          theme={T}/>}
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
@@ -1259,7 +1263,7 @@ export default function App() {
       {tab!=="add"&&(
         <button onClick={()=>setTab("add")}
           style={{position:"fixed",bottom:80,right:20,width:58,height:58,
-            borderRadius:"50%",background:C.lime,color:C.bg,fontSize:"1.8rem",
+            borderRadius:"50%",background:T.lime,color:T.bg,fontSize:"1.8rem",
             display:"flex",alignItems:"center",justifyContent:"center",
             boxShadow:"0 10px 30px rgba(200,241,53,0.4)",
             border:"none",zIndex:150,cursor:"pointer",fontFamily:"inherit",
@@ -1268,18 +1272,18 @@ export default function App() {
         </button>
       )}
 
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:C.card,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}}>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:T.card,borderTop:`1px solid ${T.border}`,display:"flex",zIndex:100}}>
         {navItems.map(item=>{
           const active=tab===item.id, isAdd=item.id==="add";
           return(
             <button key={item.id} onClick={()=>setTab(item.id)}
               style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
                 padding:isAdd?"0.5rem 0":"0.6rem 0",
-                background:isAdd?(active?C.lime:`${C.lime}15`):"none",
+                background:isAdd?(active?T.lime:`${T.lime}15`):"none",
                 border:"none",cursor:"pointer",gap:2,
-                borderTop:isAdd&&active?`2px solid ${C.lime}`:"2px solid transparent"}}>
-              <span style={{fontSize:isAdd?"1.4rem":"1.1rem",color:active?(isAdd?C.bg:C.lime):C.slate,lineHeight:1}}>{item.icon}</span>
-              <span style={{fontSize:"0.6rem",color:active?(isAdd?C.bg:C.lime):C.slate,fontWeight:active?700:400}}>{item.label}</span>
+                borderTop:isAdd&&active?`2px solid ${T.lime}`:"2px solid transparent"}}>
+              <span style={{fontSize:isAdd?"1.4rem":"1.1rem",color:active?(isAdd?T.bg:T.lime):T.slate,lineHeight:1}}>{item.icon}</span>
+              <span style={{fontSize:"0.6rem",color:active?(isAdd?T.bg:T.lime):T.slate,fontWeight:active?700:400}}>{item.label}</span>
             </button>
           );
         })}
