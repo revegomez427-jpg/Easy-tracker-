@@ -32,10 +32,11 @@ const CATEGORIES = [
 const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DAYS_ES   = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
+// INP is now dynamic — defined inside App using T
 const INP = {
-  width:"100%", padding:"0.8rem 1rem", background:C.border,
+  width:"100%", padding:"0.8rem 1rem", background:"#1c2d4a",
   border:"1.5px solid transparent", borderRadius:12,
-  color:C.white, fontSize:"0.95rem", outline:"none",
+  color:"#f0f4ff", fontSize:"0.95rem", outline:"none",
   boxSizing:"border-box", fontFamily:"inherit",
 };
 
@@ -298,40 +299,49 @@ function exportBackup(expenses, income, period, budgetRule, budgetPcts, savedPer
 }
 
 // ── ADD VIEW ───────────────────────────────────────────
-function AddView({form,setForm,addExpense,etMood,remColor,remaining,i,T}) {
+function AddView({form,setForm,addExpense,etMood,remColor,remaining,i,T,DINP}) {
+  // Use T (active theme) with fallback to dark
+  const tc = T || {bg:"#080f1e",card:"#0d1526",elevated:"#152038",border:"#1c2d4a",lime:"#c8f135",slate:"#4a6080",white:"#f0f4ff",danger:"#ff5e5e",warn:"#f5a623"};
+  const ti = i || {};
+  const inputStyle = DINP || {width:"100%",padding:"0.8rem 1rem",background:tc.border,
+    border:`1.5px solid ${tc.border}`,borderRadius:12,color:tc.white,fontSize:"0.95rem",
+    outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
   return (
-    <div style={{padding:"1.5rem 1.25rem",paddingBottom:"6rem"}}>
+    <div style={{padding:"1.5rem 1.25rem",paddingBottom:"6rem",background:tc.bg,minHeight:"100svh"}}>
       <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
         <ET size={56} mood={etMood}/>
-        <div style={{fontSize:"0.75rem",color:C.slate,marginTop:4}}>
+        <div style={{fontSize:"0.75rem",color:tc.slate,marginTop:4}}>
           Disponible: <span style={{color:remColor,fontWeight:700}}>{fmt(remaining)}</span>
         </div>
       </div>
-      <div style={{background:C.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${C.border}`}}>
-        <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.75rem"}}>
-          {i.newExpense} — {fmtKey(todayKey())}
+      <div style={{background:tc.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${tc.border}`}}>
+        <div style={{fontSize:"0.7rem",color:tc.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.75rem"}}>
+          {ti.newExpense||"Nuevo gasto"} — {fmtKey(todayKey())}
         </div>
         <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}
-          style={{...INP,marginBottom:"0.75rem",cursor:"pointer"}}>
+          style={{...inputStyle,marginBottom:"0.75rem",cursor:"pointer"}}>
           {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
         </select>
-        <input placeholder=i.description value={form.desc}
+        <input placeholder={ti.description||"Descripción"} value={form.desc}
           autoComplete="off" autoCorrect="off" spellCheck="false"
           onChange={e=>setForm(f=>({...f,desc:e.target.value}))}
-          style={{...INP,marginBottom:"0.75rem"}}/>
-        <input placeholder={i.noteHint} value={form.note||""}
+          style={{...inputStyle,marginBottom:"0.75rem"}}/>
+        <input placeholder={ti.noteHint||"Nota (opcional)"} value={form.note||""}
           autoComplete="off"
           onChange={e=>setForm(f=>({...f,note:e.target.value}))}
-          style={{...INP,marginBottom:"0.75rem"}}/>
+          style={{...inputStyle,marginBottom:"0.75rem"}}/>
         <div style={{position:"relative",marginBottom:"1rem"}}>
-          <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.lime,fontWeight:800}}>$</span>
+          <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:tc.lime,fontWeight:800}}>$</span>
           <input type="number" placeholder="0.00" value={form.amount}
             onChange={e=>setForm(f=>({...f,amount:e.target.value}))}
             onKeyDown={e=>e.key==="Enter"&&addExpense()}
-            style={{...INP,paddingLeft:"1.75rem"}}/>
+            style={{...inputStyle,paddingLeft:"1.75rem"}}/>
         </div>
         <button onClick={addExpense}
-          style={{width:"100%",padding:"0.9rem",background:C.lime,border:"none",borderRadius:12,color:C.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>{i?.saveExpense||"Guardar gasto"}</button>
+          style={{width:"100%",padding:"0.9rem",background:tc.lime,border:"none",borderRadius:12,
+            color:tc.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>
+          {ti.saveExpense||"Guardar gasto"}
+        </button>
       </div>
     </div>
   );
@@ -360,6 +370,14 @@ export default function App() {
   const [lang,setLang]             = useState(saved?.lang||"es");
   const i = TRANSLATIONS[lang] || TRANSLATIONS.es;
   const T = THEMES[themeId] || THEMES.dark; // T = active theme colors
+  // Dynamic input style based on active theme
+  const DINP = {
+    width:"100%", padding:"0.8rem 1rem",
+    background: T.isLight ? "#F5E6F0" : T.border,
+    border:`1.5px solid ${T.border}`,
+    borderRadius:12, color:T.white, fontSize:"0.95rem",
+    outline:"none", boxSizing:"border-box", fontFamily:"inherit",
+  };
   const [newMonthAlert,setNewMonthAlert] = useState(false);
   const [prevMonthLabel,setPrevMonthLabel] = useState("");
   const [selMonth,setSelMonth]   = useState(null);
@@ -557,7 +575,7 @@ export default function App() {
           <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:T.lime,fontWeight:800,fontSize:"1.1rem"}}>$</span>
           <input type="number" placeholder="0.00" value={income}
             onChange={e=>setIncome(e.target.value)} autoFocus
-            style={{...INP,paddingLeft:"2.2rem",fontSize:"1.4rem",fontWeight:800,textAlign:"center",border:`1.5px solid ${T.lime}40`}}/>
+            style={{...DINP,paddingLeft:"2.2rem",fontSize:"1.4rem",fontWeight:800,textAlign:"center",border:`1.5px solid ${T.lime}40`}}/>
         </div>
         <button onClick={()=>{if(income){persist(income,period,expenses);setScreen("main");}}}
           style={{width:"100%",padding:"0.9rem",background:T.lime,border:"none",borderRadius:12,color:T.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>
@@ -669,7 +687,7 @@ export default function App() {
                 placeholder={i.search}
                 value={searchTerm}
                 onChange={e=>setSearchTerm(e.target.value)}
-                style={{...INP,marginBottom:"0.75rem",fontSize:"0.85rem"}}/>
+                style={{...DINP,marginBottom:"0.75rem",fontSize:"0.85rem"}}/>
             )}
             {expenses.length===0?(
               <div style={{textAlign:"center",padding:"2rem 0",color:T.slate,fontSize:"0.85rem"}}>
@@ -1137,7 +1155,6 @@ export default function App() {
   const navItems=[
     {id:"home",     icon:"📊", label:i.home},
     {id:"calendar", icon:"📅", label:i.history},
-    {id:"trends",   icon:"📈", label:"Trends"},
     {id:"goals",    icon:"🏆", label:i.goals},
     {id:"budget",   icon:"🎯", label:i.budget},
   ];
@@ -1236,16 +1253,25 @@ export default function App() {
               <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
                 <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
                   letterSpacing:"0.08em",marginBottom:"0.5rem"}}>{i.appearance}</div>
-                <button onClick={()=>{cycleTheme();}}
-                  style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
-                    border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
-                    fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
-                  <span style={{fontSize:"1.3rem"}}>{THEMES[themeId].icon}</span>
-                  <div>
-                    <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.theme}: {THEMES[themeId].name}</div>
-                    <div style={{fontSize:"0.7rem",color:T.slate}}>{i.tapToChange}</div>
-                  </div>
-                </button>
+                <div style={{display:"flex",gap:"0.5rem"}}>
+                  {THEME_ORDER.map(tid=>(
+                    <button key={tid} onClick={()=>{
+                      setThemeId(tid);
+                      saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals,themeId:tid,lang});
+                      showToast(`${THEMES[tid].icon} ${THEMES[tid].name}`);
+                      setShowMenu(false);
+                    }}
+                      style={{flex:1,padding:"0.85rem 0.5rem",
+                        background:themeId===tid?T.lime:T.elevated,
+                        border:`1.5px solid ${themeId===tid?T.lime:T.border}`,
+                        borderRadius:12,cursor:"pointer",fontFamily:"inherit",
+                        display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <span style={{fontSize:"1.5rem"}}>{THEMES[tid].icon}</span>
+                      <span style={{fontSize:"0.7rem",fontWeight:700,
+                        color:themeId===tid?T.bg:T.white}}>{THEMES[tid].name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div style={{height:1,background:T.border,margin:"0.5rem 1.25rem"}}/>
@@ -1256,6 +1282,17 @@ export default function App() {
                   letterSpacing:"0.08em",marginBottom:"0.5rem"}}>{i.data}</div>
                 <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
                   
+                  <button onClick={()=>{setTab("trends");setShowMenu(false);}}
+                    style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
+                      border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
+                      fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
+                    <span style={{fontSize:"1.2rem"}}>📈</span>
+                    <div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Tendencias</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>Gráficas y estadísticas</div>
+                    </div>
+                  </button>
+
                   <button onClick={()=>{exportCSV(expenses);setShowMenu(false);}}
                     style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
                       border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
@@ -1404,7 +1441,7 @@ export default function App() {
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
-            etMood={etMood} remColor={remColor} remaining={remaining} i={i} T={T}/>
+            etMood={etMood} remColor={remColor} remaining={remaining} i={i} T={T} DINP={DINP}/>
         )}
       </div>
 
