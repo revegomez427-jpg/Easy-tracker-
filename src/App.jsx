@@ -11,9 +11,9 @@ const C = {
 };
 
 const PERIODS = [
-  { id: "weekly",   label: "Semanal",   short: "semana"   },
-  { id: "biweekly", label: "Quincenal", short: "quincena" },
-  { id: "monthly",  label: "Mensual",   short: "mes"      },
+  { id: "weekly",   label: i.weekly,   short: i.week   },
+  { id: "biweekly", label: i.biweekly, short: i.biweek },
+  { id: "monthly",  label: i.monthly,   short: i.month      },
 ];
 
 const CATEGORIES = [
@@ -185,7 +185,7 @@ function CategoryModal({cat,expenses,onClose,onDelete,onEdit}) {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
           <div>
             <div style={{fontSize:"1.1rem",fontWeight:900,color:C.white}}>{cat.emoji} {cat.label}</div>
-            <div style={{fontSize:"0.75rem",color:C.slate}}>{catExp.length} gasto{catExp.length!==1?"s":""}</div>
+            <div style={{fontSize:"0.75rem",color:C.slate}}>{catExp.length} {i.expenses}</div>
           </div>
           <div style={{textAlign:"right"}}>
             <div style={{fontWeight:800,color:cat.color,fontSize:"1.2rem"}}>{fmt(total)}</div>
@@ -201,7 +201,7 @@ function CategoryModal({cat,expenses,onClose,onDelete,onEdit}) {
 
           </div>
         )}
-        <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>Todos los gastos</div>
+        <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>Todos los {i.expenses}</div>
         <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
           {catExp.map(e=>(
             <div key={e.id} style={{background:C.elevated,borderRadius:11,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
@@ -238,14 +238,14 @@ function EditModal({expense,onSave,onClose}) {
         <select value={cat} onChange={e=>setCat(e.target.value)} style={{...INP,marginBottom:"0.75rem",cursor:"pointer"}}>
           {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
         </select>
-        <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Descripción"
+        <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder={i.description}
           style={{...INP,marginBottom:"0.75rem"}} autoComplete="off"/>
         <div style={{position:"relative",marginBottom:"0.75rem"}}>
           <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.lime,fontWeight:800}}>$</span>
           <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00"
             style={{...INP,paddingLeft:"1.75rem"}}/>
         </div>
-        <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Nota (ej: Le presté a Juan)"
+        <input value={note} onChange={e=>setNote(e.target.value)} placeholder=i.noteHint
           style={{...INP,marginBottom:"1rem"}} autoComplete="off"/>
         <div style={{display:"flex",gap:"0.5rem"}}>
           <button onClick={onClose}
@@ -297,7 +297,7 @@ function exportBackup(expenses, income, period, budgetRule, budgetPcts, savedPer
 }
 
 // ── ADD VIEW ───────────────────────────────────────────
-function AddView({form,setForm,addExpense,etMood,remColor,remaining}) {
+function AddView({form,setForm,addExpense,etMood,remColor,remaining,i,T}) {
   return (
     <div style={{padding:"1.5rem 1.25rem",paddingBottom:"6rem"}}>
       <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
@@ -314,11 +314,11 @@ function AddView({form,setForm,addExpense,etMood,remColor,remaining}) {
           style={{...INP,marginBottom:"0.75rem",cursor:"pointer"}}>
           {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
         </select>
-        <input placeholder="Descripción (ej: Gasolina)" value={form.desc}
+        <input placeholder=i.description value={form.desc}
           autoComplete="off" autoCorrect="off" spellCheck="false"
           onChange={e=>setForm(f=>({...f,desc:e.target.value}))}
           style={{...INP,marginBottom:"0.75rem"}}/>
-        <input placeholder="Nota (ej: Le presté a Juan) — opcional" value={form.note||""}
+        <input placeholder={i.noteHint} value={form.note||""}
           autoComplete="off"
           onChange={e=>setForm(f=>({...f,note:e.target.value}))}
           style={{...INP,marginBottom:"0.75rem"}}/>
@@ -330,9 +330,7 @@ function AddView({form,setForm,addExpense,etMood,remColor,remaining}) {
             style={{...INP,paddingLeft:"1.75rem"}}/>
         </div>
         <button onClick={addExpense}
-          style={{width:"100%",padding:"0.9rem",background:C.lime,border:"none",borderRadius:12,color:C.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>
-          Guardar gasto
-        </button>
+          style={{width:"100%",padding:"0.9rem",background:C.lime,border:"none",borderRadius:12,color:C.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>{i?.saveExpense||"Guardar gasto"}</button>
       </div>
     </div>
   );
@@ -539,7 +537,7 @@ export default function App() {
       </div>
       <p style={{color:T.slate,fontSize:"0.75rem",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:"2rem"}}>ET · Tu dinero, claro</p>
       <div style={{width:"100%",maxWidth:340,background:T.card,borderRadius:20,padding:"1.75rem 1.5rem",boxShadow:"0 32px 64px rgba(0,0,0,0.5)"}}>
-        <p style={{color:T.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>¿Cada cuánto cobras?</p>
+        <p style={{color:T.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>{i.howOftenPaid}</p>
         <div style={{display:"flex",gap:"0.4rem",marginBottom:"1.25rem"}}>
           {PERIODS.map(p=>(
             <button key={p.id} onClick={()=>setPeriod(p.id)}
@@ -552,7 +550,7 @@ export default function App() {
           ))}
         </div>
         <p style={{color:T.slate,fontSize:"0.8rem",textAlign:"center",marginBottom:"0.6rem"}}>
-          ¿Cuánto cobras por {PERIODS.find(p=>p.id===period)?.short}?
+          {i.howMuchPerPeriod} {PERIODS.find(p=>p.id===period)?.short}?
         </p>
         <div style={{position:"relative",marginBottom:"1rem"}}>
           <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:T.lime,fontWeight:800,fontSize:"1.1rem"}}>$</span>
@@ -562,7 +560,7 @@ export default function App() {
         </div>
         <button onClick={()=>{if(income){persist(income,period,expenses);setScreen("main");}}}
           style={{width:"100%",padding:"0.9rem",background:T.lime,border:"none",borderRadius:12,color:T.bg,fontWeight:900,fontSize:"1rem",cursor:"pointer",fontFamily:"inherit"}}>
-          {saved?.income?"Guardar cambios":"Comenzar →"}
+          {saved?.income?i.saveChanges:i.start}
         </button>
       </div>
     </div>
@@ -653,7 +651,7 @@ export default function App() {
                         <div style={{minWidth:0}}>
                           <div style={{fontSize:"0.7rem",color:T.slate}}>{cat.emoji} {cat.label}</div>
                           <div style={{fontWeight:700,color:cat.color,fontSize:"0.9rem"}}>{fmt(amt)}</div>
-                          <div style={{fontSize:"0.6rem",color:T.slate}}>{expenses.filter(e=>e.cat===cat.id).length} gastos</div>
+                          <div style={{fontSize:"0.6rem",color:T.slate}}>{expenses.filter(e=>e.cat===cat.id).length} {i.expenses}</div>
                         </div>
                       </button>
                     );
@@ -718,15 +716,15 @@ export default function App() {
                     {fmt(totalSaved)}
                   </div>
                   <div style={{fontSize:"0.7rem",color:T.slate,marginTop:4}}>
-                    De {savedPeriods.length} período{savedPeriods.length!==1?"s":""} cerrado{savedPeriods.length!==1?"s":""}
-                    {savedPeriods.length===0 && " — reinicia un período para empezar a acumular"}
+                    De {savedPeriods.length} {savedPeriods.length!==1?i.periodsPlural:i.fromPeriods} cerrado{savedPeriods.length!==1?"s":""}
+                    {savedPeriods.length===0 && " — {i.reinitToAccumulate}"}
                   </div>
                 </div>
               );
             })()}
 
             <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-              Períodos cerrados — <span style={{color:T.lime,textTransform:"none"}}>toca para ver gastos</span>
+              Períodos cerrados — <span style={{color:T.lime,textTransform:"none"}}>toca para ver {i.expenses}</span>
             </div>
 
             {/* Current period always shown first */}
@@ -764,7 +762,7 @@ export default function App() {
                         </div>
                         <div style={{fontSize:"0.65rem",color:T.slate,display:"flex",justifyContent:"space-between"}}> 
                           <span>Gastado: <span style={{color:T.white}}>{fmt(totalSpent)}</span></span>
-                          <span>{expenses.length} gastos</span>
+                          <span>{expenses.length} {i.expenses}</span>
                         </div>
                       </button>
                       {isOpen&&(
@@ -807,7 +805,7 @@ export default function App() {
             {savedPeriods.length===0&&expenses.length===0?(
               <div style={{textAlign:"center",padding:"2rem 0",color:T.slate,fontSize:"0.85rem"}}>
                 <div style={{fontSize:"2rem",marginBottom:"0.5rem"}}>🔄</div>
-                <div>Agrega gastos y cuando reinicies<br/>se guardarán aquí.</div>
+                <div>Agrega {i.expenses} y cuando reinicies<br/>se guardarán aquí.</div>
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
@@ -839,7 +837,7 @@ export default function App() {
                         </div>
                         <div style={{fontSize:"0.65rem",color:T.slate,display:"flex",justifyContent:"space-between"}}>
                           <span>Gastado: <span style={{color:T.white}}>{fmt(spent)}</span></span>
-                          <span>{items.length} gastos</span>
+                          <span>{items.length} {i.expenses}</span>
                         </div>
                       </button>
 
@@ -895,7 +893,7 @@ export default function App() {
   // ── BUDGET VIEW ───────────────────────────────────────
   function BudgetView() {
     const RULES = [
-      { id:"50-30-20", label:"50/30/20", desc:"Clásica — necesidades, personal, ahorro", needs:50, personal:30, saving:20 },
+      { id:"50-30-20", label:"50/30/20", desc:i.needsDesc+" / "+i.personalDesc, needs:50, personal:30, saving:20 },
       { id:"70-20-10", label:"70/20/10", desc:"Para deudas o ingresos bajos",            needs:70, personal:20, saving:10 },
       { id:"60-20-20", label:"60/20/20", desc:"Equilibrada con buen ahorro",             needs:60, personal:20, saving:20 },
       { id:"80-20",    label:"80/20",    desc:"Simple — gasta 80, ahorra 20",            needs:60, personal:20, saving:20 },
@@ -903,9 +901,9 @@ export default function App() {
     ];
 
     const GROUPS = [
-      { id:"needs",    label:"🔴 Necesidades", desc:"Renta, Bills, Salud, Transporte", color:"#fb7185" },
-      { id:"personal", label:"🟡 Personal",    desc:"Comida, Personal, Préstamo, Otro", color:"#f5a623" },
-      { id:"saving",   label:"🟢 Ahorro",      desc:"Meta de ahorro",                   color:T.lime    },
+      { id:"needs",    label:i.needs, desc:i.needsDesc, color:"#fb7185" },
+      { id:"personal", label:i.personal,    desc:i.personalDesc, color:"#f5a623" },
+      { id:"saving",   label:i.saving,      desc:i.savingDesc,                   color:T.lime    },
     ];
 
     // Spent by group this period
@@ -958,7 +956,7 @@ export default function App() {
         {/* Header */}
         <div style={{textAlign:"center", marginBottom:"1.25rem"}}>
           <div style={{fontSize:"1.1rem", fontWeight:900, color:T.white}}>🎯 Presupuesto</div>
-          <div style={{fontSize:"0.75rem", color:T.slate, marginTop:2}}>Basado en tu ingreso de {fmt(totalIncome)}</div>
+          <div style={{fontSize:"0.75rem", color:T.slate, marginTop:2}}>{i.budget} — {fmt(totalIncome)}</div>
         </div>
 
         {/* Rule selector */}
@@ -1038,7 +1036,7 @@ export default function App() {
         {!budgetRule && (
           <div style={{textAlign:"center", padding:"2rem 0", color:T.slate, fontSize:"0.85rem"}}>
             <div style={{fontSize:"2.5rem", marginBottom:"0.75rem"}}>🎯</div>
-            Elige una regla arriba para activar tu presupuesto.
+            {i.noRuleSelected}
           </div>
         )}
       </div>
@@ -1096,7 +1094,7 @@ export default function App() {
                 <div style={{fontWeight:800,color:T.danger,fontSize:"1.1rem"}}>-{fmt(byDate[selDay].reduce((s,e)=>s+e.amount,0))}</div>
               </div>
               <div style={{textAlign:"right"}}>
-                <div style={{fontSize:"0.7rem",color:T.slate}}>Gastos ese día</div>
+                <div style={{fontSize:"0.7rem",color:T.slate}}>{i.allExpenses}</div>
                 <div style={{fontWeight:700,color:T.white}}>{byDate[selDay].length}</div>
               </div>
             </div>
@@ -1121,14 +1119,14 @@ export default function App() {
               })}
             </div>
             <div style={{marginTop:"0.75rem",padding:"0.6rem 0.75rem",background:T.elevated,borderRadius:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:"0.75rem",color:T.slate}}>Balance total restante</span>
+              <span style={{fontSize:"0.75rem",color:T.slate}}>{i.remaining}</span>
               <span style={{fontWeight:800,color:remColor,fontSize:"0.95rem"}}>{fmt(remaining)}</span>
             </div>
           </div>
         )}
         {selDay&&!byDate[selDay]&&(
           <div style={{marginTop:"1.25rem",background:T.card,borderRadius:16,padding:"1.5rem",textAlign:"center",color:T.slate,fontSize:"0.85rem"}}>
-            Sin gastos registrados ese día.
+            Sin {i.expenses} registrados ese día.
           </div>
         )}
       </div>
@@ -1160,7 +1158,7 @@ export default function App() {
               ¡Nuevo mes!
             </div>
             <div style={{fontSize:"0.85rem",color:T.slate,marginBottom:"1rem"}}>
-              ¿Cerramos <span style={{color:T.white,fontWeight:700}}>{prevMonthLabel}</span> y lo guardamos en Savings?
+              {i.closeMonth} <span style={{color:T.white,fontWeight:700}}>{prevMonthLabel}</span> {i.andSave}
             </div>
             <div style={{background:T.elevated,borderRadius:12,padding:"0.75rem",marginBottom:"1.25rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
@@ -1168,7 +1166,7 @@ export default function App() {
                 <span style={{fontSize:"0.75rem",color:T.danger,fontWeight:700}}>{fmt(totalSpent)}</span>
               </div>
               <div style={{display:"flex",justifyContent:"space-between"}}>
-                <span style={{fontSize:"0.75rem",color:T.slate}}>Sobró</span>
+                <span style={{fontSize:"0.75rem",color:T.slate}}>{i.remaining}</span>
                 <span style={{fontSize:"0.75rem",color:remaining>=0?T.lime:T.danger,fontWeight:700}}>{fmt(Math.abs(remaining))}</span>
               </div>
             </div>
@@ -1359,7 +1357,7 @@ export default function App() {
           <div style={{background:T.card,borderRadius:20,padding:"1.5rem",width:"100%",maxWidth:340,border:`1px solid ${T.border}`,textAlign:"center"}}>
             <div style={{fontSize:"2rem",marginBottom:"0.5rem"}}>🔄</div>
             <div style={{fontWeight:800,color:T.white,marginBottom:"0.5rem"}}>¿Reiniciar período?</div>
-            <div style={{fontSize:"0.8rem",color:T.slate,marginBottom:"1.25rem"}}>Se borrarán todos los gastos del período actual. El historial de Savings se mantiene.</div>
+            <div style={{fontSize:"0.8rem",color:T.slate,marginBottom:"1.25rem"}}>{i.resetDesc}</div>
             <div style={{display:"flex",gap:"0.5rem"}}>
               <button onClick={()=>setShowReset(false)}
                 style={{flex:1,padding:"0.8rem",background:T.border,border:"none",borderRadius:12,color:T.slate,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
@@ -1398,7 +1396,7 @@ export default function App() {
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
-            etMood={etMood} remColor={remColor} remaining={remaining}/>
+            etMood={etMood} remColor={remColor} remaining={remaining} i={i} T={T}/>
         )}
       </div>
 
