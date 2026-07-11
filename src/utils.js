@@ -57,3 +57,8 @@ export function exportBackup(data) {
   a.href=url; a.download=`et-backup-${todayKey()}.json`; a.click();
   URL.revokeObjectURL(url);
 }
+
+export function fmtDate(key) {
+  const [y,m,d] = key.split("-");
+  return `${d}/${m}/${y}`;
+}
