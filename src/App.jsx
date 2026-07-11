@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import ET from "./components/ET.jsx";
+import ET from "./components/Et.jsx";
 import AddView from "./components/Addview.jsx";
 import HomeView from "./views/HomeView.jsx";
 import CalendarView from "./views/CalendarView.jsx";
