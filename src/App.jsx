@@ -1,18 +1,9 @@
 import { useState, useMemo } from "react";
 import ET from "./ET.jsx";
 import GoalView from "./GoalView.jsx";
+import { THEMES, THEME_ORDER } from "./themes.js";
 
-const C = {
-  bg:       "#080f1e",
-  card:     "#0d1526",
-  elevated: "#152038",
-  border:   "#1c2d4a",
-  lime:     "#c8f135",
-  slate:    "#4a6080",
-  white:    "#f0f4ff",
-  danger:   "#ff5e5e",
-  warn:     "#f5a623",
-};
+// C is now dynamic per theme — see state inside App
 
 const PERIODS = [
   { id: "weekly",   label: "Semanal",   short: "semana"   },
@@ -360,6 +351,8 @@ export default function App() {
   const [showReset,setShowReset] = useState(false);
   const [searchTerm,setSearchTerm] = useState("");
   const [goals,setGoals]           = useState(saved?.goals||[]);
+  const [themeId,setThemeId]       = useState(saved?.themeId||"dark");
+  const C = THEMES[themeId] || THEMES.dark;
   const [newMonthAlert,setNewMonthAlert] = useState(false);
   const [prevMonthLabel,setPrevMonthLabel] = useState("");
   const [selMonth,setSelMonth]   = useState(null);
@@ -419,7 +412,17 @@ export default function App() {
       budgetRule:  br!==undefined ? br : budgetRule,
       budgetPcts:  bp!==undefined ? bp : budgetPcts,
       savedPeriods:sp!==undefined ? sp : savedPeriods,
+      themeId,
+      goals,
     });
+  }
+
+  function cycleTheme(){
+    const idx = THEME_ORDER.indexOf(themeId);
+    const next = THEME_ORDER[(idx+1)%THEME_ORDER.length];
+    setThemeId(next);
+    saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals,themeId:next});
+    showToast(`${THEMES[next].icon} ${THEMES[next].name}`);
   }
   function persistGoals(newGoals){
     saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals:newGoals});
@@ -564,6 +567,10 @@ export default function App() {
               </div>
             </div>
             <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"flex-end"}}>
+              <button onClick={cycleTheme}
+                style={{background:C.border,border:"none",color:C.white,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.85rem",cursor:"pointer",fontFamily:"inherit"}}>
+                {THEMES[themeId].icon}
+              </button>
               <button onClick={()=>exportCSV(expenses)}
                 style={{background:C.border,border:"none",color:C.slate,borderRadius:8,padding:"0.35rem 0.6rem",fontSize:"0.7rem",cursor:"pointer",fontFamily:"inherit"}}>
                 📥 CSV
@@ -1239,7 +1246,8 @@ export default function App() {
           showToast={showToast}
           persistGoals={persistGoals}
           goals={goals}
-          setGoals={setGoals}/>}
+          setGoals={setGoals}
+          theme={C}/>}
         {tab==="calendar" && <CalendarView/>}
         {tab==="add"      && (
           <AddView form={form} setForm={setForm} addExpense={addExpense}
