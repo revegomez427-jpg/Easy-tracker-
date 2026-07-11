@@ -1,9 +1,6 @@
-import { useMemo } from "react";
-
 import { useState, useMemo } from "react";
 import { fmt, fmtMonth } from "./utils.js";
 
-const MONTHS_ES_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const MONTHS_ES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 
