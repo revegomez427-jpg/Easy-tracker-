@@ -566,30 +566,7 @@ function EditModal({expense,onSave,onClose}) {
 // ── STORAGE ────────────────────────────────────────────
 // Storage functions imported from utils.js
 
-// ── CSV EXPORT ─────────────────────────────────────────
-function exportCSV(expenses) {
-  const header="Fecha,Categoría,Descripción,Nota,Monto\n";
-  const rows=expenses.map(e=>{
-    const cat=CATEGORIES.find(c=>c.id===e.cat)||CATEGORIES[8];
-    return `${fmtKey(e.date)},${cat.label},"${e.desc}","${e.note||""}",${e.amount}`;
-  }).join("\n");
-  const blob=new Blob([header+rows],{type:"text/csv"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download="gastos-easy-tracker.csv"; a.click();
-  URL.revokeObjectURL(url);
-}
 
-// ── BACKUP & RESTORE ───────────────────────────────────
-function exportBackup(expenses, income, period, budgetRule, budgetPcts, savedPeriods) {
-  const data = { income, period, expenses, budgetRule, budgetPcts, savedPeriods,
-    version:"1.1", exportedAt:new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href = url; a.download = `et-backup-${todayKey()}.json`; a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ── ADD VIEW ───────────────────────────────────────────
 function AddView({form,setForm,addExpense,etMood,remColor,remaining,i,T,DINP}) {
