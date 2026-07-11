@@ -149,139 +149,153 @@ function WalkingET({ size=56, mood="happy", flip=false }) {
 function WindingRoad({ progress, checkpoints, deposits, totalGoal, size }) {
   const W = size.w;
   const H = size.h;
-  const pad = 30;
 
-  // Define the winding path points (serpentine upward)
+  // Path points with enough padding so ET never gets clipped
   const pathPoints = [
-    {x: W*0.15, y: H*0.92},  // start bottom left
-    {x: W*0.75, y: H*0.78},  // curve right
-    {x: W*0.82, y: H*0.63},  // top right curve
-    {x: W*0.25, y: H*0.50},  // cross left
-    {x: W*0.18, y: H*0.35},  // left curve
-    {x: W*0.72, y: H*0.22},  // cross right
-    {x: W*0.80, y: H*0.10},  // top right — goal
+    {x: W*0.20, y: H*0.88},  // start — bottom left
+    {x: W*0.78, y: H*0.74},  // swing right
+    {x: W*0.80, y: H*0.58},  // right curve
+    {x: W*0.22, y: H*0.46},  // cross to left
+    {x: W*0.20, y: H*0.30},  // left curve
+    {x: W*0.75, y: H*0.18},  // cross to right
+    {x: W*0.78, y: H*0.08},  // goal — top right
   ];
 
-  // Build SVG path string (smooth bezier)
   function buildPath(pts) {
+    if(pts.length<2) return "";
     let d = `M ${pts[0].x} ${pts[0].y}`;
     for(let i=1; i<pts.length; i++) {
-      const prev = pts[i-1];
-      const curr = pts[i];
-      const cp1x = prev.x + (curr.x-prev.x)*0.5;
-      const cp1y = prev.y;
-      const cp2x = prev.x + (curr.x-prev.x)*0.5;
-      const cp2y = curr.y;
+      const prev=pts[i-1], curr=pts[i];
+      const cp1x=prev.x+(curr.x-prev.x)*0.5, cp1y=prev.y;
+      const cp2x=prev.x+(curr.x-prev.x)*0.5, cp2y=curr.y;
       d += ` C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${curr.x} ${curr.y}`;
     }
     return d;
   }
 
-  // Get point along path at t (0-1) — approximate
   function getPointOnPath(t) {
+    // clamp t so ET is always on a valid segment
+    const clamped = Math.max(0, Math.min(t, 1));
     const total = pathPoints.length - 1;
-    const segment = t * total;
+    const segment = clamped * total;
     const i = Math.min(Math.floor(segment), total-1);
     const frac = segment - i;
-    const a = pathPoints[i];
-    const b = pathPoints[i+1];
-    return {
-      x: a.x + (b.x-a.x)*frac,
-      y: a.y + (b.y-a.y)*frac,
-    };
+    const a=pathPoints[i], b=pathPoints[Math.min(i+1,total)];
+    return { x: a.x+(b.x-a.x)*frac, y: a.y+(b.y-a.y)*frac };
   }
 
   const pathD = buildPath(pathPoints);
-  const etPos = getPointOnPath(Math.min(progress,1));
-  const etMood = progress>=1?"cool":progress>=0.7?"happy":progress>=0.4?"sweat":"cry";
-  const movingRight = etPos.x > getPointOnPath(Math.max(progress-0.05,0)).x;
 
-  // Checkpoint positions
-  const cpPositions = checkpoints.map(cp=>({
-    ...cp,
-    pos: getPointOnPath(cp.t),
-  }));
+  // ET position — always at least a little way along so it's visible at start
+  const etProgress = progress===0 ? 0.01 : Math.min(progress, 1);
+  const etPos = getPointOnPath(etProgress);
+  const prevPos = getPointOnPath(Math.max(etProgress-0.04, 0));
+  const movingRight = etPos.x >= prevPos.x;
+  const etMood = progress>=1?"cool":progress>=0.65?"happy":progress>=0.35?"sweat":"cry";
 
-  // Deposit markers on path
-  const depositMarkers = deposits.map(d=>({
-    ...d,
-    pos: getPointOnPath(Math.min(d.amount/totalGoal,1)),
-  }));
+  // Progress road highlight — only draw completed portion
+  const progressPts = pathPoints.slice(0, Math.min(Math.ceil(etProgress*(pathPoints.length-1))+1, pathPoints.length));
+  const progressD = buildPath(progressPts);
+
+  const cpPositions = checkpoints.map(cp=>({ ...cp, pos:getPointOnPath(cp.t) }));
+
+  // Accumulate deposit amounts to get position on path
+  let runningTotal = 0;
+  const depositMarkers = deposits.map(d=>{
+    runningTotal += d.amount;
+    return { ...d, pos:getPointOnPath(Math.min(runningTotal/totalGoal,0.99)) };
+  });
 
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible"}}>
+    <svg width={W} height={H} viewBox={`-10 -10 ${W+20} ${H+10}`}
+      style={{width:"100%",maxWidth:W,display:"block",margin:"0 auto"}}>
+
       {/* Road shadow */}
-      <path d={pathD} fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="22"
+      <path d={pathD} fill="none" stroke="rgba(0,0,0,0.25)" strokeWidth="24"
         strokeLinecap="round" strokeLinejoin="round"/>
       {/* Road base */}
-      <path d={pathD} fill="none" stroke={C.elevated} strokeWidth="18"
+      <path d={pathD} fill="none" stroke={C.elevated} strokeWidth="20"
         strokeLinecap="round" strokeLinejoin="round"/>
-      {/* Road dashes */}
+      {/* Center dashes */}
       <path d={pathD} fill="none" stroke={C.border} strokeWidth="2"
         strokeLinecap="round" strokeDasharray="12 10"/>
-      {/* Progress road (completed part) */}
-      <path d={buildPath(pathPoints.slice(0, Math.ceil(progress*(pathPoints.length-1))+1))}
-        fill="none" stroke={`${C.lime}40`} strokeWidth="18"
-        strokeLinecap="round"/>
+      {/* Completed road highlight */}
+      {progressD&&<path d={progressD} fill="none" stroke={`${C.lime}35`} strokeWidth="20"
+        strokeLinecap="round"/>}
 
       {/* Checkpoints */}
-      {cpPositions.map((cp,i)=>(
-        <g key={i}>
-          <circle cx={cp.pos.x} cy={cp.pos.y} r="10"
-            fill={progress >= cp.t ? C.lime : C.border}
-            stroke={C.bg} strokeWidth="2"/>
-          <text x={cp.pos.x} y={cp.pos.y+4} textAnchor="middle"
-            fontSize="8" fill={progress>=cp.t?C.bg:C.slate} fontWeight="800">
-            {Math.round(cp.t*100)}%
-          </text>
-          <text x={cp.pos.x+14} y={cp.pos.y-8} fontSize="8" fill={C.slate}>
-            {fmt(cp.amount)}
-          </text>
-        </g>
-      ))}
+      {cpPositions.map((cp,i)=>{
+        const done = progress>=cp.t;
+        const labelRight = cp.pos.x < W*0.5;
+        return (
+          <g key={i}>
+            <circle cx={cp.pos.x} cy={cp.pos.y} r="11"
+              fill={done?C.lime:C.card} stroke={done?C.lime:C.border} strokeWidth="2"/>
+            <text x={cp.pos.x} y={cp.pos.y+4} textAnchor="middle"
+              fontSize="8" fill={done?C.bg:C.slate} fontWeight="900">
+              {Math.round(cp.t*100)}%
+            </text>
+            <text x={labelRight?cp.pos.x+16:cp.pos.x-16}
+              y={cp.pos.y-10}
+              textAnchor={labelRight?"start":"end"}
+              fontSize="8" fill={done?C.lime:C.slate} fontWeight="700">
+              {fmt(cp.amount)}
+            </text>
+          </g>
+        );
+      })}
 
       {/* Deposit markers */}
-      {depositMarkers.map((d,i)=>(
-        <g key={i}>
-          <rect x={d.pos.x-18} y={d.pos.y-22} width="36" height="16" rx="4"
-            fill={C.card} stroke={C.lime} strokeWidth="1"/>
-          <text x={d.pos.x} y={d.pos.y-12} textAnchor="middle"
-            fontSize="7" fill={C.lime} fontWeight="700">
-            +{fmt(d.amount)}
-          </text>
-          <line x1={d.pos.x} y1={d.pos.y-6} x2={d.pos.x} y2={d.pos.y}
-            stroke={C.lime} strokeWidth="1" strokeDasharray="2 1"/>
-        </g>
-      ))}
+      {depositMarkers.map((d,i)=>{
+        const labelRight = d.pos.x < W*0.55;
+        return (
+          <g key={i}>
+            <circle cx={d.pos.x} cy={d.pos.y} r="7"
+              fill={C.lime} stroke={C.bg} strokeWidth="1.5"/>
+            <text x={d.pos.x} y={d.pos.y+3} textAnchor="middle"
+              fontSize="7" fill={C.bg} fontWeight="900">$</text>
+            <rect x={labelRight?d.pos.x+10:d.pos.x-46}
+              y={d.pos.y-12} width="36" height="14" rx="4"
+              fill={C.card} stroke={C.lime} strokeWidth="1"/>
+            <text x={labelRight?d.pos.x+28:d.pos.x-28}
+              y={d.pos.y-2} textAnchor="middle"
+              fontSize="7" fill={C.lime} fontWeight="700">
+              +{fmt(d.amount)}
+            </text>
+          </g>
+        );
+      })}
 
-      {/* Start flag */}
-      <g>
-        <circle cx={pathPoints[0].x} cy={pathPoints[0].y} r="8" fill={C.slate}/>
-        <text x={pathPoints[0].x} y={pathPoints[0].y+4} textAnchor="middle"
-          fontSize="8" fill={C.white}>🏁</text>
-      </g>
+      {/* Start marker */}
+      <circle cx={pathPoints[0].x} cy={pathPoints[0].y} r="10"
+        fill={C.card} stroke={C.slate} strokeWidth="2"/>
+      <text x={pathPoints[0].x} y={pathPoints[0].y+4}
+        textAnchor="middle" fontSize="10">🏁</text>
+      <text x={pathPoints[0].x-14} y={pathPoints[0].y+18}
+        textAnchor="middle" fontSize="7" fill={C.slate}>$0</text>
 
-      {/* Goal flag */}
-      <g>
-        <circle cx={pathPoints[pathPoints.length-1].x} cy={pathPoints[pathPoints.length-1].y}
-          r={progress>=1?14:10}
-          fill={progress>=1?C.lime:C.border}
-          stroke={C.bg} strokeWidth="2"/>
-        <text x={pathPoints[pathPoints.length-1].x}
-          y={pathPoints[pathPoints.length-1].y+5}
-          textAnchor="middle" fontSize={progress>=1?12:9}>
-          {progress>=1?"🏆":"🎯"}
-        </text>
-        <text x={pathPoints[pathPoints.length-1].x+16}
-          y={pathPoints[pathPoints.length-1].y-10}
-          fontSize="8" fill={C.lime} fontWeight="700">
-          {fmt(totalGoal)}
-        </text>
-      </g>
+      {/* Goal marker */}
+      {(()=>{
+        const gp=pathPoints[pathPoints.length-1];
+        return (
+          <g>
+            <circle cx={gp.x} cy={gp.y} r={progress>=1?15:11}
+              fill={progress>=1?C.lime:C.card}
+              stroke={progress>=1?C.lime:C.border} strokeWidth="2"/>
+            <text x={gp.x} y={gp.y+5} textAnchor="middle"
+              fontSize={progress>=1?13:10}>
+              {progress>=1?"🏆":"🎯"}
+            </text>
+            <text x={gp.x+16} y={gp.y-12} fontSize="8"
+              fill={C.lime} fontWeight="800">{fmt(totalGoal)}</text>
+            <text x={gp.x+16} y={gp.y-2} fontSize="7" fill={C.slate}>meta</text>
+          </g>
+        );
+      })()}
 
-      {/* ET walking */}
-      <g transform={`translate(${etPos.x-28},${etPos.y-56})`}>
-        <WalkingET size={56} mood={etMood} flip={!movingRight}/>
+      {/* ET — always fully visible */}
+      <g transform={`translate(${etPos.x-24},${etPos.y-52})`}>
+        <WalkingET size={48} mood={etMood} flip={!movingRight}/>
       </g>
     </svg>
   );
@@ -412,13 +426,13 @@ export default function GoalView({ savedPeriods, showToast, persistGoals, goals,
                 {isOpen&&(
                   <div style={{borderTop:`1px solid ${C.border}`}}>
                     {/* Winding road */}
-                    <div style={{padding:"0.5rem",overflowX:"hidden"}}>
+                    <div style={{padding:"0.5rem 0.25rem",overflowX:"hidden"}}>
                       <WindingRoad
                         progress={progress}
                         checkpoints={checkpoints}
                         deposits={goal.deposits}
                         totalGoal={goal.target}
-                        size={{w:320,h:340}}/>
+                        size={{w:340,h:380}}/>
                     </div>
 
                     {/* Deposit list */}
@@ -525,4 +539,3 @@ export default function GoalView({ savedPeriods, showToast, persistGoals, goals,
     </div>
   );
 }
-
