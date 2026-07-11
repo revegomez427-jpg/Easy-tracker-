@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import GoalView from "./goalview.jsx";
+import TrendsView from "./trendsview.jsx";
 import { THEMES, THEME_ORDER } from "./themes.js";
 import { LANGUAGES, T as TRANSLATIONS } from "./i18n.js";
 import { CATEGORIES, PERIODS, MONTHS_ES, DAYS_ES } from "./constants.js";
