@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import ET from "./ET.jsx";
 import GoalView from "./GoalView.jsx";
+import TrendsView from "./TrendsView.jsx";
 import { THEMES, THEME_ORDER } from "./themes.js";
 import { LANGUAGES, T as TRANSLATIONS } from "./i18n.js";
 
@@ -1136,6 +1137,7 @@ export default function App() {
   const navItems=[
     {id:"home",     icon:"📊", label:i.home},
     {id:"calendar", icon:"📅", label:i.history},
+    {id:"trends",   icon:"📈", label:"Trends"},
     {id:"goals",    icon:"🏆", label:i.goals},
     {id:"budget",   icon:"🎯", label:i.budget},
   ];
@@ -1386,6 +1388,12 @@ export default function App() {
       <div style={{paddingBottom:70}}>
         {tab==="home"     && <HomeView/>}
         {tab==="budget"   && <BudgetView/>}
+        {tab==="trends"   && <TrendsView
+          savedPeriods={savedPeriods}
+          expenses={expenses}
+          income={income}
+          C={T}
+          i={i}/>}
         {tab==="goals"    && <GoalView
           savedPeriods={savedPeriods}
           showToast={showToast}
