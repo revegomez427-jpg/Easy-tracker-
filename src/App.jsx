@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import ET from "./ET.jsx";
 import GoalView from "./GoalView.jsx";
 import { THEMES, THEME_ORDER } from "./themes.js";
+import { LANGUAGES, T as TRANSLATIONS } from "./i18n.js";
 
 // Base colors — components outside App use dark theme defaults
 const C = {
@@ -307,7 +308,7 @@ function AddView({form,setForm,addExpense,etMood,remColor,remaining}) {
       </div>
       <div style={{background:C.card,borderRadius:16,padding:"1.25rem",border:`1px solid ${C.border}`}}>
         <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.75rem"}}>
-          Nuevo gasto — {fmtKey(todayKey())}
+          {i.newExpense} — {fmtKey(todayKey())}
         </div>
         <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}
           style={{...INP,marginBottom:"0.75rem",cursor:"pointer"}}>
@@ -357,6 +358,8 @@ export default function App() {
   const [searchTerm,setSearchTerm] = useState("");
   const [goals,setGoals]           = useState(saved?.goals||[]);
   const [themeId,setThemeId]       = useState(saved?.themeId||"dark");
+  const [lang,setLang]             = useState(saved?.lang||"es");
+  const i = TRANSLATIONS[lang] || TRANSLATIONS.es;
   const T = THEMES[themeId] || THEMES.dark; // T = active theme colors
   const [newMonthAlert,setNewMonthAlert] = useState(false);
   const [prevMonthLabel,setPrevMonthLabel] = useState("");
@@ -419,6 +422,7 @@ export default function App() {
       savedPeriods:sp!==undefined ? sp : savedPeriods,
       themeId,
       goals,
+      lang,
     });
   }
 
@@ -426,11 +430,18 @@ export default function App() {
     const idx = THEME_ORDER.indexOf(themeId);
     const next = THEME_ORDER[(idx+1)%THEME_ORDER.length];
     setThemeId(next);
-    saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals,themeId:next});
+    saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals,themeId:next,lang});
     showToast(`${THEMES[next].icon} ${THEMES[next].name}`);
   }
   function persistGoals(newGoals){
     saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals:newGoals});
+  }
+
+  function changeLang(newLang){
+    setLang(newLang);
+    saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals,themeId,lang:newLang});
+    const found = LANGUAGES.find(l=>l.id===newLang);
+    showToast(`${found?.flag} ${found?.label}`);
   }
 
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
@@ -449,9 +460,9 @@ export default function App() {
         if(data.budgetPcts)setBudgetPcts(data.budgetPcts);
         if(data.savedPeriods)setSavedPeriods(data.savedPeriods);
         persist(data.income,data.period,data.expenses,data.budgetRule,data.budgetPcts,data.savedPeriods);
-        showToast("✅ Backup restaurado");
+        showToast(i.backupRestored);
       }catch(err){
-        showToast("❌ Error al importar");
+        showToast(i.backupError);
       }
     };
     reader.readAsText(file);
@@ -476,20 +487,20 @@ export default function App() {
     const updated=[{id:Date.now(),...form,amount:amt,date:todayKey()},...expenses];
     setExpenses(updated); persist(income,period,updated);
     setForm({desc:"",amount:"",cat:form.cat,note:""});
-    showToast("✓ Gasto guardado"); setTab("home");
+    showToast(i.expenseSaved); setTab("home");
   }
 
   function delExpense(id){
     const updated=expenses.filter(e=>e.id!==id);
     setExpenses(updated); persist(income,period,updated);
-    showToast("Eliminado");
+    showToast(i.deleted);
   }
 
   function saveEdit(updated){
     const list=expenses.map(e=>e.id===updated.id?updated:e);
     setExpenses(list); persist(income,period,list);
     setEditExp(null); setSelCat(null);
-    showToast("✓ Gasto actualizado");
+    showToast(i.expenseUpdated);
   }
 
   function resetPeriod(){
@@ -515,7 +526,7 @@ export default function App() {
       persist(income, period, []);
     }
     setShowReset(false);
-    showToast("✓ Período guardado en Savings");
+    showToast(i.periodSaved);
   }
 
   // ── SETUP ──────────────────────────────────────────
@@ -596,12 +607,12 @@ export default function App() {
           </div>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{textAlign:"center"}}>
-              <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",marginBottom:2}}>Cobrado</div>
+              <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",marginBottom:2}}>{i.earned}</div>
               <div style={{fontWeight:700,color:T.white}}>{fmt(totalIncome)}</div>
             </div>
             <Ring pct={pct} color={T.lime} size={70}/>
             <div style={{textAlign:"center"}}>
-              <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",marginBottom:2}}>Gastado</div>
+              <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",marginBottom:2}}>{i.spent}</div>
               <div style={{fontWeight:700,color:T.danger}}>{fmt(totalSpent)}</div>
             </div>
           </div>
@@ -629,7 +640,7 @@ export default function App() {
             {Object.keys(byCategory).length>0&&(
               <>
                 <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-                  Por categoría <span style={{color:T.lime,fontWeight:400,textTransform:"none",letterSpacing:0}}>· toca para detalles</span>
+                  {i.byCategory} <span style={{color:T.lime,fontWeight:400,textTransform:"none",letterSpacing:0}}>· {i.tapForDetail}</span>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.5rem",marginBottom:"1.25rem"}}>
                   {CATEGORIES.filter(c=>byCategory[c.id]).map(cat=>{
@@ -651,12 +662,12 @@ export default function App() {
               </>
             )}
             <div style={{fontSize:"0.7rem",color:T.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>
-              Todos los gastos ({expenses.length})
+              {i.allExpenses} ({expenses.length})
             </div>
             {expenses.length>0&&(
               <input
                 type="text"
-                placeholder="🔍 Buscar descripción o nota..."
+                placeholder={i.search}
                 value={searchTerm}
                 onChange={e=>setSearchTerm(e.target.value)}
                 style={{...INP,marginBottom:"0.75rem",fontSize:"0.85rem"}}/>
@@ -664,7 +675,7 @@ export default function App() {
             {expenses.length===0?(
               <div style={{textAlign:"center",padding:"2rem 0",color:T.slate,fontSize:"0.85rem"}}>
                 <ET size={56} mood="sleepy"/>
-                <div style={{marginTop:"0.75rem"}}>Sin gastos aún.<br/>Toca <strong style={{color:T.lime}}>＋</strong> para agregar.</div>
+                <div style={{marginTop:"0.75rem"}}>{i.noExpenses}<br/>{i.tapToAdd}</div>
               </div>
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
@@ -1125,10 +1136,10 @@ export default function App() {
   }
 
   const navItems=[
-    {id:"home",     icon:"📊", label:"Inicio"},
-    {id:"calendar", icon:"📅", label:"Historial"},
-    {id:"goals",    icon:"🏆", label:"Metas"},
-    {id:"budget",   icon:"🎯", label:"Presupuesto"},
+    {id:"home",     icon:"📊", label:i.home},
+    {id:"calendar", icon:"📅", label:i.history},
+    {id:"goals",    icon:"🏆", label:i.goals},
+    {id:"budget",   icon:"🎯", label:i.budget},
   ];
 
   return(
@@ -1153,7 +1164,7 @@ export default function App() {
             </div>
             <div style={{background:T.elevated,borderRadius:12,padding:"0.75rem",marginBottom:"1.25rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.3rem"}}>
-                <span style={{fontSize:"0.75rem",color:T.slate}}>Gastado</span>
+                <span style={{fontSize:"0.75rem",color:T.slate}}>{i.spent}</span>
                 <span style={{fontSize:"0.75rem",color:T.danger,fontWeight:700}}>{fmt(totalSpent)}</span>
               </div>
               <div style={{display:"flex",justifyContent:"space-between"}}>
@@ -1183,7 +1194,7 @@ export default function App() {
                   persist(income,period,[],budgetRule,budgetPcts,updatedPeriods);
                 }
                 setNewMonthAlert(false);
-                showToast(`✓ ${prevMonthLabel} guardado en Savings`);
+                showToast(`${prevMonthLabel} ${i.monthSaved}`);
               }}
                 style={{flex:2,padding:"0.8rem",background:T.lime,border:"none",borderRadius:12,color:T.bg,fontWeight:900,cursor:"pointer",fontFamily:"inherit"}}>
                 Cerrar y guardar
@@ -1224,15 +1235,15 @@ export default function App() {
               {/* Theme */}
               <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
                 <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
-                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>Apariencia</div>
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>{i.appearance}</div>
                 <button onClick={()=>{cycleTheme();}}
                   style={{width:"100%",padding:"0.85rem 1rem",background:T.elevated,
                     border:`1px solid ${T.border}`,borderRadius:12,cursor:"pointer",
                     fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
                   <span style={{fontSize:"1.3rem"}}>{THEMES[themeId].icon}</span>
                   <div>
-                    <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Tema: {THEMES[themeId].name}</div>
-                    <div style={{fontSize:"0.7rem",color:T.slate}}>Toca para cambiar</div>
+                    <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.theme}: {THEMES[themeId].name}</div>
+                    <div style={{fontSize:"0.7rem",color:T.slate}}>{i.tapToChange}</div>
                   </div>
                 </button>
               </div>
@@ -1242,7 +1253,7 @@ export default function App() {
               {/* Data options */}
               <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
                 <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
-                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>Datos</div>
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>{i.data}</div>
                 <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
                   
                   <button onClick={()=>{exportCSV(expenses);setShowMenu(false);}}
@@ -1251,8 +1262,8 @@ export default function App() {
                       fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
                     <span style={{fontSize:"1.2rem"}}>📥</span>
                     <div>
-                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Exportar CSV</div>
-                      <div style={{fontSize:"0.7rem",color:T.slate}}>Descargar gastos</div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.exportCSV}</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>{i.downloadExpenses}</div>
                     </div>
                   </button>
 
@@ -1262,8 +1273,8 @@ export default function App() {
                       fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
                     <span style={{fontSize:"1.2rem"}}>💾</span>
                     <div>
-                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Backup</div>
-                      <div style={{fontSize:"0.7rem",color:T.slate}}>Guardar copia de seguridad</div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.backup}</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>{i.saveBackup}</div>
                     </div>
                   </button>
 
@@ -1272,8 +1283,8 @@ export default function App() {
                     display:"flex",alignItems:"center",gap:12}}>
                     <span style={{fontSize:"1.2rem"}}>📂</span>
                     <div>
-                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Restaurar</div>
-                      <div style={{fontSize:"0.7rem",color:T.slate}}>Importar backup</div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.restore}</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>{i.importBackup}</div>
                     </div>
                     <input type="file" accept=".json" onChange={(e)=>{handleImportBackup(e);setShowMenu(false);}} style={{display:"none"}}/>
                   </label>
@@ -1282,10 +1293,30 @@ export default function App() {
 
               <div style={{height:1,background:T.border,margin:"0.5rem 1.25rem"}}/>
 
+              {/* Language */}
+              <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
+                <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>{i.language}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem"}}>
+                  {LANGUAGES.map(l=>(
+                    <button key={l.id} onClick={()=>changeLang(l.id)}
+                      style={{padding:"0.5rem 0.75rem",borderRadius:10,fontFamily:"inherit",
+                        cursor:"pointer",fontSize:"0.8rem",fontWeight:lang===l.id?800:400,
+                        background:lang===l.id?T.lime:T.elevated,
+                        color:lang===l.id?T.bg:T.white,
+                        border:`1px solid ${lang===l.id?T.lime:T.border}`}}>
+                      {l.flag} {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{height:1,background:T.border,margin:"0.5rem 1.25rem"}}/>
+
               {/* Settings */}
               <div style={{padding:"0.25rem 1.25rem 0.5rem"}}>
                 <div style={{fontSize:"0.65rem",color:T.slate,textTransform:"uppercase",
-                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>Configuración</div>
+                  letterSpacing:"0.08em",marginBottom:"0.5rem"}}>{i.settings}</div>
                 <div style={{display:"flex",flexDirection:"column",gap:"0.4rem"}}>
 
                   <button onClick={()=>{setScreen("setup");setShowMenu(false);}}
@@ -1294,8 +1325,8 @@ export default function App() {
                       fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
                     <span style={{fontSize:"1.2rem"}}>✏️</span>
                     <div>
-                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Editar ingreso</div>
-                      <div style={{fontSize:"0.7rem",color:T.slate}}>Cambiar monto o período</div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.editIncome}</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>{i.changeAmount}</div>
                     </div>
                   </button>
 
@@ -1305,8 +1336,8 @@ export default function App() {
                       fontFamily:"inherit",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}>
                     <span style={{fontSize:"1.2rem"}}>🔄</span>
                     <div>
-                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>Reiniciar período</div>
-                      <div style={{fontSize:"0.7rem",color:T.slate}}>Cerrar y empezar nuevo</div>
+                      <div style={{fontWeight:700,color:T.white,fontSize:"0.9rem"}}>{i.resetPeriod}</div>
+                      <div style={{fontSize:"0.7rem",color:T.slate}}>{i.closeAndStart}</div>
                     </div>
                   </button>
                 </div>
