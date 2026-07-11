@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { THEMES, THEME_ORDER } from "./themes.js";
 import { LANGUAGES, T as TRANSLATIONS } from "./i18n.js";
-import { CATEGORIES, PERIODS, MONTHS_ES, DAYS_ES, STORAGE_KEY } from "./constants.js";
-import { fmt, todayKey, fmtKey, fmtKeyLong, monthKey } from "./utils.js";
+import { CATEGORIES, PERIODS, MONTHS_ES, DAYS_ES } from "./constants.js";
+import { fmt, todayKey, fmtKey, fmtKeyLong, monthKey, loadData, saveData, exportCSV, exportBackup } from "./utils.js";
 
 
 // ── ET OWL ─────────────────────────────────────────
@@ -564,9 +564,7 @@ function EditModal({expense,onSave,onClose}) {
 }
 
 // ── STORAGE ────────────────────────────────────────────
-const STORAGE_KEY="et_data";
-function loadData(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY));}catch{return null;}}
-function saveData(data){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch{}}
+// Storage functions imported from utils.js
 
 // ── CSV EXPORT ─────────────────────────────────────────
 function exportCSV(expenses) {
