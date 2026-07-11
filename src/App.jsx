@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 // Rediseñado estilo caricatura moderna (referencia búho verde)
 // Estados: "happy" | "sleepy" | "coffee" | "sweat" | "cool" | "cry"
 
-export default function ET({ size = 80, mood = "happy" }) {
+function ET({ size = 80, mood = "happy" }) {
   const s = size;
   const id = `et_${mood}_${Math.random().toString(36).slice(2,6)}`;
 
