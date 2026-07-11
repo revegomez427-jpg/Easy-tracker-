@@ -1,16 +1,6 @@
 import { useState, useMemo } from "react";
 
-const C = {
-  bg:       "#080f1e",
-  card:     "#0d1526",
-  elevated: "#152038",
-  border:   "#1c2d4a",
-  lime:     "#c8f135",
-  slate:    "#4a6080",
-  white:    "#f0f4ff",
-  danger:   "#ff5e5e",
-  warn:     "#f5a623",
-};
+// C is passed as theme prop from App
 
 function fmt(n) {
   return n.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
@@ -25,7 +15,7 @@ function fmtDate(key) {
 }
 
 // ── WALKING ET ─────────────────────────────────────────
-function WalkingET({ size=56, mood="happy", flip=false }) {
+function WalkingET({ size=56, mood="happy", flip=false, C }) {
   const id = `wet_${Math.random().toString(36).slice(2,6)}`;
   const css = `
     @keyframes ${id}_walk {
@@ -98,31 +88,48 @@ function WalkingET({ size=56, mood="happy", flip=false }) {
         {/* Face */}
         <ellipse cx="40" cy="32" rx="16" ry="14" fill="#F5C98A" opacity=".5"/>
 
-        {/* Eyes */}
-        <circle cx="31" cy="28" r="9" fill="#1A0A00"/>
-        <circle cx="49" cy="28" r="9" fill="#1A0A00"/>
-        <circle cx="31" cy="28" r="9" fill="none" stroke={eyeColor} strokeWidth="2" opacity=".6"/>
-        <circle cx="49" cy="28" r="9" fill="none" stroke={eyeColor} strokeWidth="2" opacity=".6"/>
+        {/* Eyes — white sclera first, then pupil on top */}
+        <circle cx="31" cy="28" r="9" fill="white"/>
+        <circle cx="49" cy="28" r="9" fill="white"/>
+        <circle cx="31" cy="28" r="9" fill="none" stroke={eyeColor} strokeWidth="2" opacity=".7"/>
+        <circle cx="49" cy="28" r="9" fill="none" stroke={eyeColor} strokeWidth="2" opacity=".7"/>
 
-        {/* Pupils */}
+        {/* Pupils on top of white sclera */}
         {mood==="sleepy" ? (
           <>
-            <rect x="23" y="24" width="16" height="8" rx="3" fill="#E8913A"/>
-            <rect x="41" y="24" width="16" height="8" rx="3" fill="#E8913A"/>
+            <rect x="23" y="24" width="16" height="9" rx="4" fill="#E8913A"/>
+            <rect x="41" y="24" width="16" height="9" rx="4" fill="#E8913A"/>
+            <line x1="23" y1="28" x2="39" y2="28" stroke="#7A3B10" strokeWidth="1.5"/>
+            <line x1="41" y1="28" x2="57" y2="28" stroke="#7A3B10" strokeWidth="1.5"/>
           </>
         ) : mood==="cry" ? (
           <>
-            <circle cx="31" cy="30" r="4" fill="#1A0A00"/>
-            <circle cx="49" cy="30" r="4" fill="#1A0A00"/>
-            <ellipse cx="28" cy="38" rx="2" ry="4" fill="#7EC8E3" opacity=".8"/>
-            <ellipse cx="52" cy="38" rx="2" ry="4" fill="#7EC8E3" opacity=".8"/>
+            <circle cx="31" cy="29" r="4.5" fill="#3A2A10"/>
+            <circle cx="49" cy="29" r="4.5" fill="#3A2A10"/>
+            <circle cx="29" cy="27" r="1.5" fill="white" opacity=".6"/>
+            <circle cx="47" cy="27" r="1.5" fill="white" opacity=".6"/>
+            <ellipse cx="27" cy="39" rx="2" ry="4.5" fill="#7EC8E3" opacity=".9"/>
+            <ellipse cx="52" cy="39" rx="2" ry="4.5" fill="#7EC8E3" opacity=".9"/>
+          </>
+        ) : mood==="cool" ? (
+          <>
+            <circle cx="31" cy="29" r="4.5" fill="#3A2A10"/>
+            <circle cx="49" cy="29" r="4.5" fill="#3A2A10"/>
+            <circle cx="29" cy="27" r="1.5" fill="white" opacity=".7"/>
+            <circle cx="47" cy="27" r="1.5" fill="white" opacity=".7"/>
+            {/* Sunglasses */}
+            <rect x="22" y="23" width="18" height="11" rx="5" fill={eyeColor} opacity=".85"/>
+            <rect x="41" y="23" width="18" height="11" rx="5" fill={eyeColor} opacity=".85"/>
+            <line x1="40" y1="28" x2="41" y2="28" stroke="#1A0A00" strokeWidth="2"/>
           </>
         ) : (
           <>
             <circle cx="31" cy="29" r="4.5" fill={eyeColor}/>
             <circle cx="49" cy="29" r="4.5" fill={eyeColor}/>
-            <circle cx="29" cy="27" r="1.5" fill="white" opacity=".8"/>
-            <circle cx="47" cy="27" r="1.5" fill="white" opacity=".8"/>
+            <circle cx="29" cy="27" r="1.8" fill="white" opacity=".85"/>
+            <circle cx="47" cy="27" r="1.8" fill="white" opacity=".85"/>
+            <circle cx="33" cy="30" r="1" fill="#1A0A00" opacity=".4"/>
+            <circle cx="51" cy="30" r="1" fill="#1A0A00" opacity=".4"/>
           </>
         )}
 
@@ -146,7 +153,7 @@ function WalkingET({ size=56, mood="happy", flip=false }) {
 }
 
 // ── WINDING ROAD SVG ───────────────────────────────────
-function WindingRoad({ progress, checkpoints, deposits, totalGoal, size }) {
+function WindingRoad({ progress, checkpoints, deposits, totalGoal, size, C }) {
   const W = size.w;
   const H = size.h;
 
@@ -295,14 +302,15 @@ function WindingRoad({ progress, checkpoints, deposits, totalGoal, size }) {
 
       {/* ET — always fully visible */}
       <g transform={`translate(${etPos.x-24},${etPos.y-52})`}>
-        <WalkingET size={48} mood={etMood} flip={!movingRight}/>
+        <WalkingET size={48} mood={etMood} flip={!movingRight} C={C}/>
       </g>
     </svg>
   );
 }
 
 // ── GOAL VIEW ──────────────────────────────────────────
-export default function GoalView({ savedPeriods, showToast, persistGoals, goals, setGoals }) {
+export default function GoalView({ savedPeriods, showToast, persistGoals, goals, setGoals, theme }) {
+  const C = theme || {bg:"#080f1e",card:"#0d1526",elevated:"#152038",border:"#1c2d4a",lime:"#c8f135",slate:"#4a6080",white:"#f0f4ff",danger:"#ff5e5e",warn:"#f5a623"};
   const [showNewGoal, setShowNewGoal] = useState(false);
   const [newGoal, setNewGoal]         = useState({name:"", target:""});
   const [selGoal, setSelGoal]         = useState(null);
@@ -432,7 +440,8 @@ export default function GoalView({ savedPeriods, showToast, persistGoals, goals,
                         checkpoints={checkpoints}
                         deposits={goal.deposits}
                         totalGoal={goal.target}
-                        size={{w:340,h:380}}/>
+                        size={{w:340,h:380}}
+                        C={C}/>
                     </div>
 
                     {/* Deposit list */}
