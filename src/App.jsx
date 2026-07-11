@@ -12,9 +12,9 @@ const C = {
 };
 
 const PERIODS = [
-  { id: "weekly",   label: i.weekly,   short: i.week   },
-  { id: "biweekly", label: i.biweekly, short: i.biweek },
-  { id: "monthly",  label: i.monthly,   short: i.month      },
+  { id: "weekly",   label: "Semanal",   short: "semana"   },
+  { id: "biweekly", label: "Quincenal", short: "quincena" },
+  { id: "monthly",  label: "Mensual",   short: "mes"      },
 ];
 
 const CATEGORIES = [
@@ -187,7 +187,7 @@ function CategoryModal({cat,expenses,onClose,onDelete,onEdit}) {
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.25rem"}}>
           <div>
             <div style={{fontSize:"1.1rem",fontWeight:900,color:C.white}}>{cat.emoji} {cat.label}</div>
-            <div style={{fontSize:"0.75rem",color:C.slate}}>{catExp.length} {i.expenses}</div>
+            <div style={{fontSize:"0.75rem",color:C.slate}}>{catExp.length} gastos</div>
           </div>
           <div style={{textAlign:"right"}}>
             <div style={{fontWeight:800,color:cat.color,fontSize:"1.2rem"}}>{fmt(total)}</div>
@@ -203,7 +203,7 @@ function CategoryModal({cat,expenses,onClose,onDelete,onEdit}) {
 
           </div>
         )}
-        <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>Todos los {i.expenses}</div>
+        <div style={{fontSize:"0.7rem",color:C.slate,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:"0.6rem"}}>Todos los gastos</div>
         <div style={{display:"flex",flexDirection:"column",gap:"0.45rem"}}>
           {catExp.map(e=>(
             <div key={e.id} style={{background:C.elevated,borderRadius:11,padding:"0.65rem 0.75rem",borderLeft:`3px solid ${cat.color}`}}>
@@ -240,7 +240,7 @@ function EditModal({expense,onSave,onClose}) {
         <select value={cat} onChange={e=>setCat(e.target.value)} style={{...INP,marginBottom:"0.75rem",cursor:"pointer"}}>
           {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
         </select>
-        <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder={i.description}
+        <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Descripción"
           style={{...INP,marginBottom:"0.75rem"}} autoComplete="off"/>
         <div style={{position:"relative",marginBottom:"0.75rem"}}>
           <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.lime,fontWeight:800}}>$</span>
@@ -400,7 +400,8 @@ export default function App() {
   const owlEye  = pct>90?T.danger:pct>70?T.warn:T.lime;
   const owlMood = pct>90?"alert":"happy";
   const remColor    = remaining<0?T.danger:remaining<totalIncome*0.1?T.warn:T.lime;
-  const periodLabel = PERIODS.find(p=>p.id===period)?.short||"período";
+  const periodObj = PERIODS.find(p=>p.id===period);
+  const periodLabel = i[periodObj?.shortKey]||periodObj?.short||"período";
 
   const byDate=useMemo(()=>{
     const m={};
@@ -458,7 +459,8 @@ export default function App() {
     setLang(newLang);
     saveData({income,period,expenses,budgetRule,budgetPcts,savedPeriods,goals,themeId,lang:newLang});
     const found = LANGUAGES.find(l=>l.id===newLang);
-    showToast(`${found?.flag} ${found?.label}`);
+    setToast(`${found?.flag} ${found?.label}`);
+    setTimeout(()=>setToast(null),2200);
   }
 
   function showToast(msg){setToast(msg);setTimeout(()=>setToast(null),2200);}
@@ -564,7 +566,7 @@ export default function App() {
                 borderRadius:10,background:period===p.id?`${T.lime}18`:T.border,
                 color:period===p.id?T.lime:T.slate,fontWeight:period===p.id?800:400,
                 fontSize:"0.8rem",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}>
-              {p.label}
+              {i[p.labelKey]||p.label}
             </button>
           ))}
         </div>
