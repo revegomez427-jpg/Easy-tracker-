@@ -247,7 +247,7 @@ function EditModal({expense,onSave,onClose}) {
           <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00"
             style={{...INP,paddingLeft:"1.75rem"}}/>
         </div>
-        <input value={note} onChange={e=>setNote(e.target.value)} placeholder=i.noteHint
+        <input value={note} onChange={e=>setNote(e.target.value)} placeholder={i?.noteHint||'Nota'}
           style={{...INP,marginBottom:"1rem"}} autoComplete="off"/>
         <div style={{display:"flex",gap:"0.5rem"}}>
           <button onClick={onClose}
