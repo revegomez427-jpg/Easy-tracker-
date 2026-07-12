@@ -45,6 +45,18 @@ const googleProvider = new GoogleAuthProvider()
 // ============================================================
 const EXPENSE_CATEGORIES = ['Comida', 'Transporte', 'Renta', 'Servicios', 'Ocio', 'Salud', 'Otro']
 const INCOME_CATEGORIES = ['Sueldo', 'Freelance', 'Regalo', 'Otro']
+const NEEDS_CATEGORIES = ['Comida', 'Transporte', 'Renta', 'Servicios', 'Salud']
+const WANTS_CATEGORIES = ['Ocio', 'Otro']
+
+const CATEGORY_COLORS = {
+  Comida: '#f59e0b',
+  Transporte: '#3b82f6',
+  Renta: '#8b5cf6',
+  Servicios: '#06b6d4',
+  Ocio: '#ec4899',
+  Salud: '#22c55e',
+  Otro: '#94a3b8',
+}
 
 const emptyForm = {
   title: '',
@@ -53,6 +65,55 @@ const emptyForm = {
   category: EXPENSE_CATEGORIES[0],
   date: new Date().toISOString().slice(0, 10),
   notes: '',
+}
+
+function CircleProgress({ pct, color, size = 56, centerText, sublabel }) {
+  const strokeWidth = 6
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (Math.min(pct, 100) / 100) * circumference
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <svg width={size} height={size}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+        />
+        {centerText && (
+          <text
+            x={size / 2}
+            y={size / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={size * 0.22}
+            fontWeight="700"
+            fill="#1a1a1a"
+          >
+            {centerText}
+          </text>
+        )}
+      </svg>
+      {sublabel && <span style={{ fontSize: 10, color: '#888', textAlign: 'center' }}>{sublabel}</span>}
+    </div>
+  )
 }
 
 export default function App() {
@@ -69,6 +130,8 @@ export default function App() {
   const [editingGoalId, setEditingGoalId] = useState(null)
   const [goalEditForm, setGoalEditForm] = useState({ name: '', targetAmount: '', deadline: '' })
   const [goalAmountDrafts, setGoalAmountDrafts] = useState({})
+  const [activeTab, setActiveTab] = useState('inicio')
+  const [showMenu, setShowMenu] = useState(false)
 
   // -------- Auth: escuchar sesión --------
   useEffect(() => {
@@ -383,6 +446,80 @@ export default function App() {
       spentByCategory[t.category] = (spentByCategory[t.category] || 0) + t.amount
     })
 
+  // -------- Datos para el gráfico de pastel del Resumen del mes --------
+  const totalMonthExpense = Object.values(spentByCategory).reduce((sum, v) => sum + v, 0)
+  const pieSlices = Object.entries(spentByCategory)
+    .filter(([, amount]) => amount > 0)
+    .map(([category, amount]) => ({
+      category,
+      amount,
+      pct: totalMonthExpense > 0 ? (amount / totalMonthExpense) * 100 : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+
+  let cumulativePct = 0
+  const pieGradient =
+    pieSlices.length > 0
+      ? `conic-gradient(${pieSlices
+          .map((slice) => {
+            const start = cumulativePct
+            cumulativePct += slice.pct
+            return `${CATEGORY_COLORS[slice.category]} ${start}% ${cumulativePct}%`
+          })
+          .join(', ')})`
+      : '#e5e7eb'
+
+  // -------- Regla 50/30/20 (basada en ingresos y gastos del mes actual) --------
+  const monthlyIncome = transactions
+    .filter((t) => t.type === 'income' && t.date && t.date.slice(0, 7) === currentMonthKey)
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const monthlyNeeds = transactions
+    .filter(
+      (t) =>
+        t.type === 'expense' &&
+        t.date &&
+        t.date.slice(0, 7) === currentMonthKey &&
+        NEEDS_CATEGORIES.includes(t.category)
+    )
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const monthlyWants = transactions
+    .filter(
+      (t) =>
+        t.type === 'expense' &&
+        t.date &&
+        t.date.slice(0, 7) === currentMonthKey &&
+        WANTS_CATEGORIES.includes(t.category)
+    )
+    .reduce((sum, t) => sum + t.amount, 0)
+
+  const monthlySavings = monthlyIncome - monthlyNeeds - monthlyWants
+
+  const rule503020 = [
+    {
+      label: 'Necesidades',
+      targetPct: 0.5,
+      actual: monthlyNeeds,
+      target: monthlyIncome * 0.5,
+      color: '#3b82f6',
+    },
+    {
+      label: 'Deseos',
+      targetPct: 0.3,
+      actual: monthlyWants,
+      target: monthlyIncome * 0.3,
+      color: '#f59e0b',
+    },
+    {
+      label: 'Ahorro',
+      targetPct: 0.2,
+      actual: monthlySavings,
+      target: monthlyIncome * 0.2,
+      color: '#22c55e',
+    },
+  ]
+
   // -------- Ordenar metas: en progreso primero, completadas al final --------
   const sortedGoals = [...goals].sort((a, b) => {
     const aDone = (a.currentAmount || 0) >= a.targetAmount
@@ -422,10 +559,37 @@ export default function App() {
           <h1 style={styles.headerTitle}>EasyTracker</h1>
           <p style={styles.headerSubtitle}>{user.displayName || user.email}</p>
         </div>
-        <button style={styles.logoutButton} onClick={handleLogout}>
-          Salir
-        </button>
+        <div style={{ position: 'relative' }}>
+          <button style={styles.menuButton} onClick={() => setShowMenu((v) => !v)}>
+            ⋮
+          </button>
+          {showMenu && (
+            <div style={styles.dropdownMenu}>
+              <button
+                style={styles.dropdownItem}
+                onClick={() => {
+                  setActiveTab('configuracion')
+                  setShowMenu(false)
+                }}
+              >
+                ⚙️ Configuración
+              </button>
+              <button
+                style={styles.dropdownItem}
+                onClick={() => {
+                  setShowMenu(false)
+                  handleLogout()
+                }}
+              >
+                🚪 Salir
+              </button>
+            </div>
+          )}
+        </div>
       </header>
+
+      {activeTab === 'inicio' && (
+      <>
 
       <section style={styles.summaryRow}>
         <div style={{ ...styles.summaryCard, borderColor: '#22c55e' }}>
@@ -445,6 +609,11 @@ export default function App() {
           <span style={{ ...styles.summaryValue, color: '#3b82f6' }}>${balance.toFixed(2)}</span>
         </div>
       </section>
+      </>
+      )}
+
+      {activeTab === 'presupuestos' && (
+      <>
 
       <section style={styles.budgetsSection}>
         <h2 style={styles.formTitle}>Presupuestos mensuales</h2>
@@ -459,28 +628,24 @@ export default function App() {
 
             return (
               <div key={cat} style={styles.budgetRow}>
-                <div style={styles.budgetRowHeader}>
-                  <span style={styles.budgetCategory}>{cat}</span>
-                  {limit ? (
-                    <span style={styles.budgetAmounts}>
-                      ${spent.toFixed(2)} / ${limit.toFixed(2)}
-                    </span>
-                  ) : (
-                    <span style={{ ...styles.budgetAmounts, color: '#aaa' }}>Sin límite</span>
-                  )}
-                </div>
-
-                {limit ? (
-                  <div style={styles.budgetBarTrack}>
-                    <div
-                      style={{
-                        ...styles.budgetBarFill,
-                        width: `${pct}%`,
-                        background: barColor,
-                      }}
-                    />
+                <div style={styles.budgetCircleRow}>
+                  <CircleProgress
+                    pct={pct}
+                    color={barColor}
+                    size={56}
+                    centerText={limit ? `${pct.toFixed(0)}%` : '–'}
+                  />
+                  <div style={styles.budgetCircleInfo}>
+                    <span style={styles.budgetCategory}>{cat}</span>
+                    {limit ? (
+                      <span style={styles.budgetAmounts}>
+                        ${spent.toFixed(2)} / ${limit.toFixed(2)}
+                      </span>
+                    ) : (
+                      <span style={{ ...styles.budgetAmounts, color: '#aaa' }}>Sin límite</span>
+                    )}
                   </div>
-                ) : null}
+                </div>
 
                 <div style={styles.budgetEditRow}>
                   <input
@@ -669,6 +834,107 @@ export default function App() {
           })}
         </div>
       </section>
+      </>
+      )}
+
+      {activeTab === 'resumen' && (
+      <>
+
+      <section style={styles.budgetsSection}>
+        <h2 style={styles.formTitle}>Resumen del mes</h2>
+        <p style={{ color: '#888', fontSize: 12, margin: '0 0 16px 0' }}>
+          Total gastado: ${totalMonthExpense.toFixed(2)}
+        </p>
+
+        {totalMonthExpense === 0 ? (
+          <p style={{ color: '#888' }}>Todavía no tienes gastos registrados este mes.</p>
+        ) : (
+          <>
+            <div style={styles.pieWrapper}>
+              <div style={{ ...styles.pieChart, background: pieGradient }} />
+            </div>
+            <div style={styles.pieLegend}>
+              {pieSlices.map((slice) => (
+                <div key={slice.category} style={styles.pieLegendRow}>
+                  <span
+                    style={{ ...styles.pieLegendDot, background: CATEGORY_COLORS[slice.category] }}
+                  />
+                  <span style={styles.pieLegendLabel}>{slice.category}</span>
+                  <span style={styles.pieLegendValue}>
+                    ${slice.amount.toFixed(2)} ({slice.pct.toFixed(0)}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+      </>
+      )}
+
+      {false && (
+      <section style={styles.budgetsSection}>
+        <h2 style={styles.formTitle}>Regla 50/30/20</h2>
+        <p style={{ color: '#888', fontSize: 12, margin: '0 0 12px 0' }}>
+          Basado en tus ingresos de este mes: ${monthlyIncome.toFixed(2)}
+        </p>
+
+        {monthlyIncome === 0 ? (
+          <p style={{ color: '#888' }}>
+            Agrega tus ingresos de este mes para ver esta comparación.
+          </p>
+        ) : (
+          <div style={styles.budgetsList}>
+            {rule503020.map((row) => {
+              const pctOfTarget = row.target > 0 ? Math.min((Math.max(row.actual, 0) / row.target) * 100, 100) : 0
+              const isSavings = row.label === 'Ahorro'
+              const isOver = !isSavings && row.actual > row.target
+              const isUnder = isSavings && row.actual < row.target
+
+              return (
+                <div key={row.label} style={styles.budgetRow}>
+                  <div style={styles.budgetRowHeader}>
+                    <span style={styles.budgetCategory}>
+                      {row.label} ({(row.targetPct * 100).toFixed(0)}%)
+                    </span>
+                    <span
+                      style={{
+                        ...styles.budgetAmounts,
+                        color: isOver || isUnder ? '#ef4444' : '#555',
+                      }}
+                    >
+                      ${row.actual.toFixed(2)} / ${row.target.toFixed(2)}
+                    </span>
+                  </div>
+                  <div style={styles.budgetBarTrack}>
+                    <div
+                      style={{
+                        ...styles.budgetBarFill,
+                        width: `${pctOfTarget}%`,
+                        background: isOver || isUnder ? '#ef4444' : row.color,
+                      }}
+                    />
+                  </div>
+                  {isOver && (
+                    <span style={{ color: '#ef4444', fontSize: 12 }}>
+                      Te pasaste ${(row.actual - row.target).toFixed(2)} de lo recomendado
+                    </span>
+                  )}
+                  {isUnder && (
+                    <span style={{ color: '#ef4444', fontSize: 12 }}>
+                      Estás ahorrando ${(row.target - row.actual).toFixed(2)} menos de lo ideal
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+      )}
+
+      {activeTab === 'transacciones' && (
+      <>
 
       <form style={styles.form} onSubmit={handleSubmit}>
         <h2 style={styles.formTitle}>{editingId ? 'Editar transacción' : 'Nueva transacción'}</h2>
@@ -787,6 +1053,53 @@ export default function App() {
           ))}
         </ul>
       </section>
+      </>
+      )}
+
+      {activeTab === 'configuracion' && (
+        <section style={styles.budgetsSection}>
+          <h2 style={styles.formTitle}>Configuración</h2>
+          <p style={{ color: '#888' }}>
+            Aquí van a vivir el idioma, exportar a CSV y el respaldo de tus datos. Próximamente.
+          </p>
+        </section>
+      )}
+
+      <nav style={styles.tabBar}>
+        <button
+          style={{ ...styles.tabButton, ...(activeTab === 'inicio' ? styles.tabButtonActive : {}) }}
+          onClick={() => setActiveTab('inicio')}
+        >
+          🏠<span style={styles.tabLabel}>Inicio</span>
+        </button>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'transacciones' ? styles.tabButtonActive : {}),
+          }}
+          onClick={() => setActiveTab('transacciones')}
+        >
+          💳<span style={styles.tabLabel}>Movimientos</span>
+        </button>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'presupuestos' ? styles.tabButtonActive : {}),
+          }}
+          onClick={() => setActiveTab('presupuestos')}
+        >
+          🎯<span style={styles.tabLabel}>Metas</span>
+        </button>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'resumen' ? styles.tabButtonActive : {}),
+          }}
+          onClick={() => setActiveTab('resumen')}
+        >
+          📊<span style={styles.tabLabel}>Resumen</span>
+        </button>
+      </nav>
     </div>
   )
 }
@@ -799,6 +1112,7 @@ const styles = {
     maxWidth: 480,
     margin: '0 auto',
     padding: 16,
+    paddingBottom: 88,
     fontFamily: 'system-ui, -apple-system, sans-serif',
     color: '#1a1a1a',
   },
@@ -835,6 +1149,38 @@ const styles = {
     borderRadius: 10,
     border: '1px solid #ddd',
     background: 'white',
+    cursor: 'pointer',
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    border: '1px solid #ddd',
+    background: 'white',
+    cursor: 'pointer',
+    fontSize: 20,
+    lineHeight: 1,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 46,
+    right: 0,
+    background: 'white',
+    borderRadius: 12,
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    overflow: 'hidden',
+    zIndex: 10,
+    minWidth: 160,
+  },
+  dropdownItem: {
+    display: 'block',
+    width: '100%',
+    padding: '12px 16px',
+    border: 'none',
+    background: 'white',
+    textAlign: 'left',
+    fontSize: 14,
     cursor: 'pointer',
   },
   summaryRow: { display: 'flex', gap: 10, marginBottom: 24 },
@@ -924,6 +1270,8 @@ const styles = {
   budgetsList: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 },
   budgetRow: { display: 'flex', flexDirection: 'column', gap: 6 },
   budgetRowHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  budgetCircleRow: { display: 'flex', alignItems: 'center', gap: 12 },
+  budgetCircleInfo: { display: 'flex', flexDirection: 'column', gap: 2 },
   budgetCategory: { fontWeight: 600, fontSize: 14 },
   budgetAmounts: { fontSize: 13, color: '#555' },
   budgetBarTrack: {
@@ -975,4 +1323,47 @@ const styles = {
     border: '1px solid #e5e7eb',
   },
   goalDeadline: { fontSize: 12, color: '#888' },
+  pieWrapper: { display: 'flex', justifyContent: 'center', marginBottom: 20 },
+  pieChart: {
+    width: 180,
+    height: 180,
+    borderRadius: '50%',
+  },
+  pieLegend: { display: 'flex', flexDirection: 'column', gap: 8 },
+  pieLegendRow: { display: 'flex', alignItems: 'center', gap: 8 },
+  pieLegendDot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
+  pieLegendLabel: { flex: 1, fontSize: 13, fontWeight: 600 },
+  pieLegendValue: { fontSize: 13, color: '#555' },
+  tabBar: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxWidth: 480,
+    margin: '0 auto',
+    display: 'flex',
+    justifyContent: 'space-around',
+    background: 'white',
+    borderTop: '1px solid #e5e7eb',
+    padding: '8px 0',
+    boxShadow: '0 -2px 8px rgba(0,0,0,0.05)',
+  },
+  tabButton: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: 20,
+    padding: '4px 12px',
+    borderRadius: 10,
+    color: '#888',
+  },
+  tabButtonActive: {
+    color: '#22c55e',
+    background: '#f0fdf4',
+  },
+  tabLabel: { fontSize: 10, fontWeight: 600 },
 }
