@@ -67,6 +67,46 @@ const emptyForm = {
   notes: '',
 }
 
+function OwlMascot({ mood = 'happy', size = 64 }) {
+  // mood: 'happy' | 'neutral' | 'worried'
+  const eyeY = mood === 'worried' ? 30 : 28
+  const browPath =
+    mood === 'worried'
+      ? 'M18 22 Q23 26 28 22 M36 22 Q41 26 46 22'
+      : mood === 'neutral'
+      ? 'M18 22 Q23 19 28 22 M36 22 Q41 19 46 22'
+      : 'M18 20 Q23 15 28 20 M36 20 Q41 15 46 20'
+  const mouthPath =
+    mood === 'worried'
+      ? 'M27 46 Q32 42 37 46'
+      : mood === 'neutral'
+      ? 'M27 45 L37 45'
+      : 'M26 42 Q32 50 38 42'
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64">
+      {/* Cuerpo */}
+      <ellipse cx="32" cy="36" rx="24" ry="22" fill="#22c55e" />
+      {/* Panza */}
+      <ellipse cx="32" cy="40" rx="15" ry="14" fill="#dcfce7" />
+      {/* Orejas/plumas */}
+      <path d="M14 18 L20 26 L10 26 Z" fill="#16a34a" />
+      <path d="M50 18 L54 26 L44 26 Z" fill="#16a34a" />
+      {/* Ojos */}
+      <circle cx="23" cy={eyeY} r="9" fill="white" />
+      <circle cx="41" cy={eyeY} r="9" fill="white" />
+      <circle cx="23" cy={eyeY + 1} r="4" fill="#14532d" />
+      <circle cx="41" cy={eyeY + 1} r="4" fill="#14532d" />
+      {/* Cejas */}
+      <path d={browPath} stroke="#14532d" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Pico */}
+      <path d="M29 36 L35 36 L32 42 Z" fill="#f59e0b" />
+      {/* Boca */}
+      <path d={mouthPath} stroke="#14532d" strokeWidth="2" fill="none" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function CircleProgress({ pct, color, size = 56, centerText, sublabel }) {
   const strokeWidth = 6
   const radius = (size - strokeWidth) / 2
@@ -539,8 +579,11 @@ export default function App() {
 
   if (!user) {
     return (
-      <div style={styles.centerScreen}>
-        <h1 style={{ marginBottom: 8 }}>EasyTracker</h1>
+      <div style={{ ...styles.centerScreen, background: 'linear-gradient(180deg, #f0fdf4, #ffffff)' }}>
+        <div style={{ marginBottom: 16 }}>
+          <OwlMascot mood="happy" size={100} />
+        </div>
+        <h1 style={{ marginBottom: 8, color: '#166534' }}>EasyTracker</h1>
         <p style={{ color: '#888', marginBottom: 24 }}>Controla tus finanzas, fácil y rápido.</p>
         <button style={styles.googleButton} onClick={handleLogin}>
           Iniciar sesión con Google
@@ -552,12 +595,31 @@ export default function App() {
 
   const categoryOptions = form.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
+  // -------- Estado de ánimo de ET según balance y presupuestos --------
+  const anyBudgetOver = EXPENSE_CATEGORIES.some((cat) => {
+    const limit = budgets[cat]
+    const spent = spentByCategory[cat] || 0
+    return limit && spent > limit
+  })
+  const owlMood = balance < 0 || anyBudgetOver ? 'worried' : balance === 0 ? 'neutral' : 'happy'
+
   return (
     <div style={styles.app}>
       <header style={styles.header}>
-        <div>
-          <h1 style={styles.headerTitle}>EasyTracker</h1>
-          <p style={styles.headerSubtitle}>{user.displayName || user.email}</p>
+        <div style={styles.headerLeft}>
+          <div style={styles.headerOwlWrap}>
+            <OwlMascot mood={owlMood} size={52} />
+          </div>
+          <div>
+            <h1 style={styles.headerTitle}>EasyTracker</h1>
+            <p style={styles.headerSubtitle}>
+              {owlMood === 'worried'
+                ? '¡Cuidado con tus gastos!'
+                : owlMood === 'happy'
+                ? '¡Vas muy bien!'
+                : user.displayName || user.email}
+            </p>
+          </div>
         </div>
         <div style={{ position: 'relative' }}>
           <button style={styles.menuButton} onClick={() => setShowMenu((v) => !v)}>
@@ -1114,7 +1176,9 @@ const styles = {
     padding: 16,
     paddingBottom: 88,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: '#1a1a1a',
+    color: '#14532d',
+    background: '#f6fdf9',
+    minHeight: '100vh',
   },
   centerScreen: {
     height: '100vh',
@@ -1127,23 +1191,36 @@ const styles = {
     fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   googleButton: {
-    padding: '12px 24px',
-    borderRadius: 12,
+    padding: '14px 28px',
+    borderRadius: 999,
     border: 'none',
-    background: '#22c55e',
+    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
     color: 'white',
     fontSize: 16,
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: 'pointer',
+    boxShadow: '0 6px 16px rgba(34,197,94,0.35)',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+    borderRadius: 20,
+    padding: '14px 16px',
+    boxShadow: '0 8px 20px rgba(34,197,94,0.25)',
   },
-  headerTitle: { margin: 0, fontSize: 22 },
-  headerSubtitle: { margin: 0, color: '#888', fontSize: 13 },
+  headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  headerOwlWrap: {
+    background: 'white',
+    borderRadius: '50%',
+    padding: 4,
+    display: 'flex',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+  },
+  headerTitle: { margin: 0, fontSize: 20, color: 'white', fontWeight: 800 },
+  headerSubtitle: { margin: 0, color: '#dcfce7', fontSize: 12, fontWeight: 600 },
   logoutButton: {
     padding: '8px 14px',
     borderRadius: 10,
@@ -1154,9 +1231,10 @@ const styles = {
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: 10,
-    border: '1px solid #ddd',
-    background: 'white',
+    borderRadius: '50%',
+    border: 'none',
+    background: 'rgba(255,255,255,0.25)',
+    color: 'white',
     cursor: 'pointer',
     fontSize: 20,
     lineHeight: 1,
@@ -1186,25 +1264,29 @@ const styles = {
   summaryRow: { display: 'flex', gap: 10, marginBottom: 24 },
   summaryCard: {
     flex: 1,
-    border: '2px solid',
-    borderRadius: 14,
-    padding: 12,
+    border: 'none',
+    borderRadius: 18,
+    padding: '14px 12px',
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
+    background: 'white',
+    boxShadow: '0 4px 14px rgba(20,83,45,0.08)',
+    borderTop: '3px solid',
   },
-  summaryLabel: { fontSize: 12, color: '#888' },
-  summaryValue: { fontSize: 16, fontWeight: 700 },
+  summaryLabel: { fontSize: 12, color: '#888', fontWeight: 600 },
+  summaryValue: { fontSize: 17, fontWeight: 800 },
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
-    background: '#f9fafb',
-    borderRadius: 16,
-    padding: 16,
+    background: 'white',
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 24,
+    boxShadow: '0 4px 14px rgba(20,83,45,0.08)',
   },
-  formTitle: { margin: '0 0 4px 0', fontSize: 17 },
+  formTitle: { margin: '0 0 4px 0', fontSize: 17, color: '#14532d', fontWeight: 800 },
   typeToggle: { display: 'flex', gap: 8, marginBottom: 4 },
   typeButton: {
     flex: 1,
@@ -1228,12 +1310,13 @@ const styles = {
   saveButton: {
     flex: 1,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     border: 'none',
-    background: '#22c55e',
+    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
     color: 'white',
     fontWeight: 700,
     cursor: 'pointer',
+    boxShadow: '0 4px 10px rgba(34,197,94,0.3)',
   },
   cancelButton: {
     padding: 12,
@@ -1248,10 +1331,11 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 12,
-    background: '#f9fafb',
+    borderRadius: 14,
+    background: 'white',
+    boxShadow: '0 2px 8px rgba(20,83,45,0.06)',
   },
-  listItemTitle: { margin: 0, fontWeight: 600, fontSize: 14 },
+  listItemTitle: { margin: 0, fontWeight: 700, fontSize: 14, color: '#14532d' },
   listItemMeta: { margin: 0, color: '#888', fontSize: 12 },
   listItemAmount: { fontWeight: 700, fontSize: 14 },
   iconButton: {
@@ -1262,17 +1346,25 @@ const styles = {
   },
   errorText: { color: '#ef4444', fontSize: 13, margin: 0 },
   budgetsSection: {
-    background: '#f9fafb',
-    borderRadius: 16,
-    padding: 16,
+    background: 'white',
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 24,
+    boxShadow: '0 4px 14px rgba(20,83,45,0.08)',
   },
   budgetsList: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 },
-  budgetRow: { display: 'flex', flexDirection: 'column', gap: 6 },
+  budgetRow: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    background: '#f6fdf9',
+    borderRadius: 14,
+    padding: 12,
+  },
   budgetRowHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   budgetCircleRow: { display: 'flex', alignItems: 'center', gap: 12 },
   budgetCircleInfo: { display: 'flex', flexDirection: 'column', gap: 2 },
-  budgetCategory: { fontWeight: 600, fontSize: 14 },
+  budgetCategory: { fontWeight: 700, fontSize: 14, color: '#14532d' },
   budgetAmounts: { fontSize: 13, color: '#555' },
   budgetBarTrack: {
     height: 8,
@@ -1318,9 +1410,9 @@ const styles = {
     flexDirection: 'column',
     gap: 8,
     background: 'white',
-    borderRadius: 12,
-    padding: 12,
-    border: '1px solid #e5e7eb',
+    borderRadius: 16,
+    padding: 14,
+    boxShadow: '0 2px 8px rgba(20,83,45,0.06)',
   },
   goalDeadline: { fontSize: 12, color: '#888' },
   pieWrapper: { display: 'flex', justifyContent: 'center', marginBottom: 20 },
@@ -1344,9 +1436,10 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-around',
     background: 'white',
-    borderTop: '1px solid #e5e7eb',
-    padding: '8px 0',
-    boxShadow: '0 -2px 8px rgba(0,0,0,0.05)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: '10px 0',
+    boxShadow: '0 -6px 20px rgba(20,83,45,0.12)',
   },
   tabButton: {
     display: 'flex',
@@ -1357,13 +1450,14 @@ const styles = {
     background: 'transparent',
     cursor: 'pointer',
     fontSize: 20,
-    padding: '4px 12px',
-    borderRadius: 10,
-    color: '#888',
+    padding: '6px 14px',
+    borderRadius: 14,
+    color: '#9ca3af',
+    transition: 'background 0.2s ease, color 0.2s ease',
   },
   tabButtonActive: {
-    color: '#22c55e',
-    background: '#f0fdf4',
+    color: '#16a34a',
+    background: '#dcfce7',
   },
-  tabLabel: { fontSize: 10, fontWeight: 600 },
+  tabLabel: { fontSize: 10, fontWeight: 700 },
 }
