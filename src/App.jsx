@@ -14,6 +14,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  setDoc,
   onSnapshot,
   query,
   orderBy,
@@ -61,6 +62,8 @@ export default function App() {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const [budgets, setBudgets] = useState({})
+  const [budgetDrafts, setBudgetDrafts] = useState({})
 
   // -------- Auth: escuchar sesión --------
   useEffect(() => {
@@ -88,6 +91,29 @@ export default function App() {
       (err) => {
         console.error(err)
         setError('No se pudieron cargar las transacciones.')
+      }
+    )
+    return () => unsub()
+  }, [user])
+
+  // -------- Firestore: escuchar presupuestos del usuario --------
+  useEffect(() => {
+    if (!user) {
+      setBudgets({})
+      return
+    }
+    const budgetsRef = collection(db, 'users', user.uid, 'budgets')
+    const unsub = onSnapshot(
+      budgetsRef,
+      (snapshot) => {
+        const map = {}
+        snapshot.docs.forEach((d) => {
+          map[d.id] = d.data().limit
+        })
+        setBudgets(map)
+      },
+      (err) => {
+        console.error(err)
       }
     )
     return () => unsub()
@@ -184,6 +210,28 @@ export default function App() {
     }
   }
 
+  function handleBudgetDraftChange(category, value) {
+    setBudgetDrafts((prev) => ({ ...prev, [category]: value }))
+  }
+
+  async function handleSaveBudget(category) {
+    const value = budgetDrafts[category]
+    const limitNumber = parseFloat(value)
+    if (isNaN(limitNumber) || limitNumber < 0) return
+    try {
+      const budgetDoc = doc(db, 'users', user.uid, 'budgets', category)
+      await setDoc(budgetDoc, { category, limit: limitNumber })
+      setBudgetDrafts((prev) => {
+        const next = { ...prev }
+        delete next[category]
+        return next
+      })
+    } catch (err) {
+      console.error(err)
+      setError('No se pudo guardar el presupuesto.')
+    }
+  }
+
   const totalIncome = transactions
     .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0)
@@ -192,6 +240,17 @@ export default function App() {
     .reduce((sum, t) => sum + t.amount, 0)
   const balance = totalIncome - totalExpense
 
+  // -------- Gasto del mes actual por categoría (para presupuestos) --------
+  const now = new Date()
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const spentByCategory = {}
+  transactions
+    .filter((t) => t.type === 'expense' && t.date && t.date.slice(0, 7) === currentMonthKey)
+    .forEach((t) => {
+      spentByCategory[t.category] = (spentByCategory[t.category] || 0) + t.amount
+    })
+
+  // -------- Pantallas --------
   if (authLoading) {
     return (
       <div style={styles.centerScreen}>
@@ -243,6 +302,66 @@ export default function App() {
         <div style={{ ...styles.summaryCard, borderColor: '#3b82f6' }}>
           <span style={styles.summaryLabel}>Balance</span>
           <span style={{ ...styles.summaryValue, color: '#3b82f6' }}>${balance.toFixed(2)}</span>
+        </div>
+      </section>
+
+      <section style={styles.budgetsSection}>
+        <h2 style={styles.formTitle}>Presupuestos mensuales</h2>
+        <div style={styles.budgetsList}>
+          {EXPENSE_CATEGORIES.map((cat) => {
+            const limit = budgets[cat]
+            const spent = spentByCategory[cat] || 0
+            const pct = limit ? Math.min((spent / limit) * 100, 100) : 0
+            const isOver = limit && spent > limit
+            const isClose = limit && !isOver && spent / limit >= 0.8
+            const barColor = isOver ? '#ef4444' : isClose ? '#f59e0b' : '#22c55e'
+
+            return (
+              <div key={cat} style={styles.budgetRow}>
+                <div style={styles.budgetRowHeader}>
+                  <span style={styles.budgetCategory}>{cat}</span>
+                  {limit ? (
+                    <span style={styles.budgetAmounts}>
+                      ${spent.toFixed(2)} / ${limit.toFixed(2)}
+                    </span>
+                  ) : (
+                    <span style={{ ...styles.budgetAmounts, color: '#aaa' }}>Sin límite</span>
+                  )}
+                </div>
+
+                {limit ? (
+                  <div style={styles.budgetBarTrack}>
+                    <div
+                      style={{
+                        ...styles.budgetBarFill,
+                        width: `${pct}%`,
+                        background: barColor,
+                      }}
+                    />
+                  </div>
+                ) : null}
+
+                <div style={styles.budgetEditRow}>
+                  <input
+                    style={styles.budgetInput}
+                    type="number"
+                    step="0.01"
+                    placeholder={limit ? `Cambiar límite ($${limit})` : 'Poner límite ($)'}
+                    value={budgetDrafts[cat] ?? ''}
+                    onChange={(e) => handleBudgetDraftChange(cat, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    style={styles.budgetSaveButton}
+                    onClick={() => handleSaveBudget(cat)}
+                    disabled={!budgetDrafts[cat]}
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </section>
 
@@ -491,4 +610,45 @@ const styles = {
     fontSize: 16,
   },
   errorText: { color: '#ef4444', fontSize: 13, margin: 0 },
+  budgetsSection: {
+    background: '#f9fafb',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  budgetsList: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 },
+  budgetRow: { display: 'flex', flexDirection: 'column', gap: 6 },
+  budgetRowHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  budgetCategory: { fontWeight: 600, fontSize: 14 },
+  budgetAmounts: { fontSize: 13, color: '#555' },
+  budgetBarTrack: {
+    height: 8,
+    borderRadius: 999,
+    background: '#e5e7eb',
+    overflow: 'hidden',
+  },
+  budgetBarFill: {
+    height: '100%',
+    borderRadius: 999,
+    transition: 'width 0.3s ease',
+  },
+  budgetEditRow: { display: 'flex', gap: 8 },
+  budgetInput: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 10,
+    border: '1px solid #ddd',
+    fontSize: 13,
+    fontFamily: 'inherit',
+  },
+  budgetSaveButton: {
+    padding: '10px 14px',
+    borderRadius: 10,
+    border: 'none',
+    background: '#3b82f6',
+    color: 'white',
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: 'pointer',
+  },
 }
