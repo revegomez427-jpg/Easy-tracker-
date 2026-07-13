@@ -49,13 +49,30 @@ const NEEDS_CATEGORIES = ['Comida', 'Transporte', 'Renta', 'Servicios', 'Salud']
 const WANTS_CATEGORIES = ['Ocio', 'Otro']
 
 const CATEGORY_COLORS = {
-  Comida: '#f59e0b',
-  Transporte: '#3b82f6',
-  Renta: '#8b5cf6',
-  Servicios: '#06b6d4',
-  Ocio: '#ec4899',
-  Salud: '#22c55e',
+  Comida: '#fb923c',
+  Transporte: '#38bdf8',
+  Renta: '#a78bfa',
+  Servicios: '#22d3ee',
+  Ocio: '#f472b6',
+  Salud: '#4ade80',
   Otro: '#94a3b8',
+}
+
+const CATEGORY_EMOJI = {
+  Comida: '🛒',
+  Transporte: '🚗',
+  Renta: '🏠',
+  Servicios: '💡',
+  Ocio: '🎉',
+  Salud: '💊',
+  Otro: '📦',
+}
+
+const INCOME_EMOJI = {
+  Sueldo: '💼',
+  Freelance: '💻',
+  Regalo: '🎁',
+  Otro: '📦',
 }
 
 const emptyForm = {
@@ -107,11 +124,13 @@ function OwlMascot({ mood = 'happy', size = 64 }) {
   )
 }
 
-function CircleProgress({ pct, color, size = 56, centerText, sublabel }) {
+function CircleProgress({ pct, color, size = 56, centerText, sublabel, dark = false }) {
   const strokeWidth = 6
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (Math.min(pct, 100) / 100) * circumference
+  const trackColor = dark ? '#1e293b' : '#e5e7eb'
+  const textColor = dark ? '#e2e8f0' : '#1a1a1a'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -121,7 +140,7 @@ function CircleProgress({ pct, color, size = 56, centerText, sublabel }) {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          stroke={trackColor}
           strokeWidth={strokeWidth}
         />
         <circle
@@ -145,7 +164,7 @@ function CircleProgress({ pct, color, size = 56, centerText, sublabel }) {
             dominantBaseline="central"
             fontSize={size * 0.22}
             fontWeight="700"
-            fill="#1a1a1a"
+            fill={textColor}
           >
             {centerText}
           </text>
@@ -475,6 +494,27 @@ export default function App() {
     .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0)
   const balance = totalIncome - totalExpense
+  const spentPct = totalIncome > 0 ? Math.min((totalExpense / totalIncome) * 100, 100) : 0
+
+  // -------- Desglose de gastos por categoría (todo el tiempo, para la vista Inicio) --------
+  const categoryBreakdown = {}
+  transactions
+    .filter((t) => t.type === 'expense')
+    .forEach((t) => {
+      if (!categoryBreakdown[t.category]) {
+        categoryBreakdown[t.category] = { amount: 0, count: 0 }
+      }
+      categoryBreakdown[t.category].amount += t.amount
+      categoryBreakdown[t.category].count += 1
+    })
+  const categoryBreakdownList = Object.entries(categoryBreakdown)
+    .map(([category, data]) => ({
+      category,
+      amount: data.amount,
+      count: data.count,
+      pct: totalExpense > 0 ? (data.amount / totalExpense) * 100 : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
 
   // -------- Gasto del mes actual por categoría (para presupuestos) --------
   const now = new Date()
@@ -579,12 +619,12 @@ export default function App() {
 
   if (!user) {
     return (
-      <div style={{ ...styles.centerScreen, background: 'linear-gradient(180deg, #f0fdf4, #ffffff)' }}>
+      <div style={styles.centerScreen}>
         <div style={{ marginBottom: 16 }}>
           <OwlMascot mood="happy" size={100} />
         </div>
-        <h1 style={{ marginBottom: 8, color: '#166534' }}>EasyTracker</h1>
-        <p style={{ color: '#888', marginBottom: 24 }}>Controla tus finanzas, fácil y rápido.</p>
+        <h1 style={{ marginBottom: 8, color: '#a3e635' }}>EasyTracker</h1>
+        <p style={{ color: '#94a3b8', marginBottom: 24 }}>Controla tus finanzas, fácil y rápido.</p>
         <button style={styles.googleButton} onClick={handleLogin}>
           Iniciar sesión con Google
         </button>
@@ -608,68 +648,147 @@ export default function App() {
       <header style={styles.header}>
         <div style={styles.headerLeft}>
           <div style={styles.headerOwlWrap}>
-            <OwlMascot mood={owlMood} size={52} />
+            <OwlMascot mood={owlMood} size={40} />
           </div>
           <div>
-            <h1 style={styles.headerTitle}>EasyTracker</h1>
-            <p style={styles.headerSubtitle}>
-              {owlMood === 'worried'
-                ? '¡Cuidado con tus gastos!'
-                : owlMood === 'happy'
-                ? '¡Vas muy bien!'
-                : user.displayName || user.email}
-            </p>
+            <p style={styles.headerTitle}>EASY TRACKER</p>
+            <p style={styles.headerSubtitle}>ET</p>
           </div>
         </div>
-        <div style={{ position: 'relative' }}>
-          <button style={styles.menuButton} onClick={() => setShowMenu((v) => !v)}>
-            ⋮
+        <div style={styles.headerActions}>
+          <button
+            style={styles.headerIconButton}
+            onClick={() => setActiveTab('configuracion')}
+            title="Exportar / Configuración"
+          >
+            📤
           </button>
-          {showMenu && (
-            <div style={styles.dropdownMenu}>
-              <button
-                style={styles.dropdownItem}
-                onClick={() => {
-                  setActiveTab('configuracion')
-                  setShowMenu(false)
-                }}
-              >
-                ⚙️ Configuración
-              </button>
-              <button
-                style={styles.dropdownItem}
-                onClick={() => {
-                  setShowMenu(false)
-                  handleLogout()
-                }}
-              >
-                🚪 Salir
-              </button>
-            </div>
-          )}
+          <button
+            style={styles.headerIconButton}
+            onClick={() => setActiveTab('presupuestos')}
+            title="Presupuesto"
+          >
+            🔄
+          </button>
+          <div style={{ position: 'relative' }}>
+            <button style={styles.headerIconButton} onClick={() => setShowMenu((v) => !v)}>
+              ✏️
+            </button>
+            {showMenu && (
+              <div style={styles.dropdownMenu}>
+                <button
+                  style={styles.dropdownItem}
+                  onClick={() => {
+                    setActiveTab('configuracion')
+                    setShowMenu(false)
+                  }}
+                >
+                  ⚙️ Configuración
+                </button>
+                <button
+                  style={styles.dropdownItem}
+                  onClick={() => {
+                    setShowMenu(false)
+                    handleLogout()
+                  }}
+                >
+                  🚪 Salir
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
       {activeTab === 'inicio' && (
       <>
 
-      <section style={styles.summaryRow}>
-        <div style={{ ...styles.summaryCard, borderColor: '#22c55e' }}>
-          <span style={styles.summaryLabel}>Ingresos</span>
-          <span style={{ ...styles.summaryValue, color: '#22c55e' }}>
-            ${totalIncome.toFixed(2)}
-          </span>
+      <section style={styles.heroCard}>
+        <p style={styles.heroLabel}>Disponible</p>
+        <p style={styles.heroAmount}>${balance.toFixed(2)}</p>
+
+        <div style={styles.heroStatsRow}>
+          <div style={{ textAlign: 'left' }}>
+            <p style={styles.heroStatLabel}>COBRADO</p>
+            <p style={styles.heroStatValueIncome}>${totalIncome.toFixed(2)}</p>
+          </div>
+
+          <CircleProgress
+            pct={spentPct}
+            color="#a3e635"
+            size={72}
+            centerText={`${spentPct.toFixed(0)}%`}
+            dark
+          />
+
+          <div style={{ textAlign: 'right' }}>
+            <p style={styles.heroStatLabel}>GASTADO</p>
+            <p style={styles.heroStatValueExpense}>${totalExpense.toFixed(2)}</p>
+          </div>
         </div>
-        <div style={{ ...styles.summaryCard, borderColor: '#ef4444' }}>
-          <span style={styles.summaryLabel}>Gastos</span>
-          <span style={{ ...styles.summaryValue, color: '#ef4444' }}>
-            ${totalExpense.toFixed(2)}
-          </span>
+
+        <div style={styles.heroBarTrack}>
+          <div style={{ ...styles.heroBarFill, width: `${spentPct}%` }} />
         </div>
-        <div style={{ ...styles.summaryCard, borderColor: '#3b82f6' }}>
-          <span style={styles.summaryLabel}>Balance</span>
-          <span style={{ ...styles.summaryValue, color: '#3b82f6' }}>${balance.toFixed(2)}</span>
-        </div>
+      </section>
+
+      <section style={styles.budgetsSection}>
+        <h2 style={styles.formTitle}>Por categoría</h2>
+        {categoryBreakdownList.length === 0 ? (
+          <p style={{ color: '#64748b' }}>Todavía no tienes gastos registrados.</p>
+        ) : (
+          <div style={styles.categoryGrid}>
+            {categoryBreakdownList.map((c) => (
+              <div key={c.category} style={styles.categoryGridCard}>
+                <CircleProgress
+                  pct={c.pct}
+                  color={CATEGORY_COLORS[c.category]}
+                  size={44}
+                  centerText={`${c.pct.toFixed(0)}%`}
+                  dark
+                />
+                <div>
+                  <p style={styles.categoryGridName}>
+                    {CATEGORY_EMOJI[c.category]} {c.category}
+                  </p>
+                  <p style={styles.categoryGridAmount}>${c.amount.toFixed(2)}</p>
+                  <p style={styles.categoryGridCount}>
+                    {c.count} gasto{c.count === 1 ? '' : 's'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section style={styles.budgetsSection}>
+        <h2 style={styles.formTitle}>Todos los gastos ({transactions.filter((t) => t.type === 'expense').length})</h2>
+        <ul style={styles.list}>
+          {transactions
+            .filter((t) => t.type === 'expense')
+            .map((tx) => (
+              <li
+                key={tx.id}
+                style={{ ...styles.darkListItem, borderLeftColor: CATEGORY_COLORS[tx.category] }}
+              >
+                <div style={styles.darkListItemIcon}>{CATEGORY_EMOJI[tx.category]}</div>
+                <div style={{ flex: 1 }}>
+                  <p style={styles.darkListItemTitle}>{tx.title}</p>
+                  <p style={styles.darkListItemMeta}>
+                    {tx.date} · {tx.category}
+                  </p>
+                </div>
+                <span style={styles.darkListItemAmount}>-${tx.amount.toFixed(2)}</span>
+                <button style={styles.darkIconButton} onClick={() => handleEdit(tx)}>
+                  ✏️
+                </button>
+                <button style={styles.darkIconButton} onClick={() => handleDelete(tx.id)}>
+                  ✕
+                </button>
+              </li>
+            ))}
+        </ul>
       </section>
       </>
       )}
@@ -899,17 +1018,17 @@ export default function App() {
       </>
       )}
 
-      {activeTab === 'resumen' && (
+      {activeTab === 'presupuestos' && (
       <>
 
       <section style={styles.budgetsSection}>
         <h2 style={styles.formTitle}>Resumen del mes</h2>
-        <p style={{ color: '#888', fontSize: 12, margin: '0 0 16px 0' }}>
+        <p style={{ color: '#94a3b8', fontSize: 12, margin: '0 0 16px 0' }}>
           Total gastado: ${totalMonthExpense.toFixed(2)}
         </p>
 
         {totalMonthExpense === 0 ? (
-          <p style={{ color: '#888' }}>Todavía no tienes gastos registrados este mes.</p>
+          <p style={{ color: '#64748b' }}>Todavía no tienes gastos registrados este mes.</p>
         ) : (
           <>
             <div style={styles.pieWrapper}>
@@ -1080,37 +1199,52 @@ export default function App() {
           )}
         </div>
       </form>
+      </>
+      )}
 
-      <section>
-        <h2 style={styles.formTitle}>Movimientos</h2>
+      {activeTab === 'historial' && (
+      <>
+
+      <section style={styles.budgetsSection}>
+        <h2 style={styles.formTitle}>Historial ({transactions.length})</h2>
         {transactions.length === 0 && (
-          <p style={{ color: '#888' }}>Todavía no tienes transacciones.</p>
+          <p style={{ color: '#64748b' }}>Todavía no tienes transacciones.</p>
         )}
         <ul style={styles.list}>
           {transactions.map((tx) => (
-            <li key={tx.id} style={styles.listItem}>
-              <div>
-                <p style={styles.listItemTitle}>{tx.title}</p>
-                <p style={styles.listItemMeta}>
-                  {tx.category} · {tx.date}
+            <li
+              key={tx.id}
+              style={{
+                ...styles.darkListItem,
+                borderLeftColor:
+                  tx.type === 'income' ? '#a3e635' : CATEGORY_COLORS[tx.category] || '#64748b',
+              }}
+            >
+              <div style={styles.darkListItemIcon}>
+                {tx.type === 'income'
+                  ? INCOME_EMOJI[tx.category] || '💰'
+                  : CATEGORY_EMOJI[tx.category] || '📦'}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={styles.darkListItemTitle}>{tx.title}</p>
+                <p style={styles.darkListItemMeta}>
+                  {tx.date} · {tx.category}
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span
-                  style={{
-                    ...styles.listItemAmount,
-                    color: tx.type === 'income' ? '#22c55e' : '#ef4444',
-                  }}
-                >
-                  {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}
-                </span>
-                <button style={styles.iconButton} onClick={() => handleEdit(tx)}>
-                  ✏️
-                </button>
-                <button style={styles.iconButton} onClick={() => handleDelete(tx.id)}>
-                  🗑️
-                </button>
-              </div>
+              <span
+                style={{
+                  ...styles.darkListItemAmount,
+                  color: tx.type === 'income' ? '#a3e635' : '#fb7185',
+                }}
+              >
+                {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}
+              </span>
+              <button style={styles.darkIconButton} onClick={() => handleEdit(tx)}>
+                ✏️
+              </button>
+              <button style={styles.darkIconButton} onClick={() => handleDelete(tx.id)}>
+                ✕
+              </button>
             </li>
           ))}
         </ul>
@@ -1137,29 +1271,29 @@ export default function App() {
         <button
           style={{
             ...styles.tabButton,
-            ...(activeTab === 'transacciones' ? styles.tabButtonActive : {}),
+            ...(activeTab === 'historial' ? styles.tabButtonActive : {}),
           }}
-          onClick={() => setActiveTab('transacciones')}
+          onClick={() => setActiveTab('historial')}
         >
-          💳<span style={styles.tabLabel}>Movimientos</span>
+          📅<span style={styles.tabLabel}>Historial</span>
+        </button>
+        <button
+          style={styles.addTabButton}
+          onClick={() => {
+            resetForm()
+            setActiveTab('transacciones')
+          }}
+        >
+          +
         </button>
         <button
           style={{
             ...styles.tabButton,
-            ...(activeTab === 'presupuestos' ? styles.tabButtonActive : {}),
+            ...(activeTab === 'presupuestos' || activeTab === 'resumen' ? styles.tabButtonActive : {}),
           }}
           onClick={() => setActiveTab('presupuestos')}
         >
-          🎯<span style={styles.tabLabel}>Metas</span>
-        </button>
-        <button
-          style={{
-            ...styles.tabButton,
-            ...(activeTab === 'resumen' ? styles.tabButtonActive : {}),
-          }}
-          onClick={() => setActiveTab('resumen')}
-        >
-          📊<span style={styles.tabLabel}>Resumen</span>
+          🎯<span style={styles.tabLabel}>Presupuesto</span>
         </button>
       </nav>
     </div>
@@ -1174,10 +1308,10 @@ const styles = {
     maxWidth: 480,
     margin: '0 auto',
     padding: 16,
-    paddingBottom: 88,
+    paddingBottom: 96,
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: '#14532d',
-    background: '#f6fdf9',
+    color: '#e2e8f0',
+    background: '#0b1120',
     minHeight: '100vh',
   },
   centerScreen: {
@@ -1189,52 +1323,64 @@ const styles = {
     textAlign: 'center',
     padding: 24,
     fontFamily: 'system-ui, -apple-system, sans-serif',
+    background: '#0b1120',
+    color: '#e2e8f0',
   },
   googleButton: {
     padding: '14px 28px',
     borderRadius: 999,
     border: 'none',
-    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-    color: 'white',
+    background: 'linear-gradient(135deg, #a3e635, #65a30d)',
+    color: '#0b1120',
     fontSize: 16,
-    fontWeight: 700,
+    fontWeight: 800,
     cursor: 'pointer',
-    boxShadow: '0 6px 16px rgba(34,197,94,0.35)',
+    boxShadow: '0 6px 16px rgba(163,230,53,0.35)',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-    borderRadius: 20,
-    padding: '14px 16px',
-    boxShadow: '0 8px 20px rgba(34,197,94,0.25)',
   },
-  headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  headerLeft: { display: 'flex', alignItems: 'center', gap: 10 },
   headerOwlWrap: {
-    background: 'white',
+    background: '#141d2e',
     borderRadius: '50%',
     padding: 4,
     display: 'flex',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
   },
-  headerTitle: { margin: 0, fontSize: 20, color: 'white', fontWeight: 800 },
-  headerSubtitle: { margin: 0, color: '#dcfce7', fontSize: 12, fontWeight: 600 },
+  headerTitle: { margin: 0, fontSize: 11, color: '#64748b', fontWeight: 700, letterSpacing: 2 },
+  headerSubtitle: { margin: 0, color: '#a3e635', fontSize: 18, fontWeight: 800 },
+  headerActions: { display: 'flex', gap: 8 },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    border: 'none',
+    background: '#141d2e',
+    color: '#e2e8f0',
+    cursor: 'pointer',
+    fontSize: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   logoutButton: {
     padding: '8px 14px',
     borderRadius: 10,
-    border: '1px solid #ddd',
-    background: 'white',
+    border: '1px solid #1e293b',
+    background: '#141d2e',
+    color: '#e2e8f0',
     cursor: 'pointer',
   },
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: '50%',
+    borderRadius: 12,
     border: 'none',
-    background: 'rgba(255,255,255,0.25)',
-    color: 'white',
+    background: '#141d2e',
+    color: '#e2e8f0',
     cursor: 'pointer',
     fontSize: 20,
     lineHeight: 1,
@@ -1243,23 +1389,67 @@ const styles = {
     position: 'absolute',
     top: 46,
     right: 0,
-    background: 'white',
+    background: '#141d2e',
     borderRadius: 12,
-    border: '1px solid #e5e7eb',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    border: '1px solid #1e293b',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
     overflow: 'hidden',
     zIndex: 10,
-    minWidth: 160,
+    minWidth: 170,
   },
   dropdownItem: {
     display: 'block',
     width: '100%',
     padding: '12px 16px',
     border: 'none',
-    background: 'white',
+    background: '#141d2e',
+    color: '#e2e8f0',
     textAlign: 'left',
     fontSize: 14,
     cursor: 'pointer',
+  },
+  heroCard: {
+    background: '#0f1729',
+    borderRadius: 24,
+    padding: '24px 20px',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  heroLabel: {
+    margin: 0,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: '#64748b',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+  },
+  heroAmount: {
+    margin: '6px 0 20px 0',
+    fontSize: 44,
+    fontWeight: 800,
+    color: '#a3e635',
+    lineHeight: 1,
+  },
+  heroStatsRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  heroStatLabel: { margin: 0, fontSize: 10, letterSpacing: 1, color: '#64748b', fontWeight: 700 },
+  heroStatValueIncome: { margin: '4px 0 0 0', fontSize: 18, fontWeight: 800, color: '#e2e8f0' },
+  heroStatValueExpense: { margin: '4px 0 0 0', fontSize: 18, fontWeight: 800, color: '#fb7185' },
+  heroBarTrack: {
+    height: 6,
+    borderRadius: 999,
+    background: '#1e293b',
+    overflow: 'hidden',
+  },
+  heroBarFill: {
+    height: '100%',
+    borderRadius: 999,
+    background: '#a3e635',
+    transition: 'width 0.3s ease',
   },
   summaryRow: { display: 'flex', gap: 10, marginBottom: 24 },
   summaryCard: {
@@ -1270,39 +1460,40 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    background: 'white',
-    boxShadow: '0 4px 14px rgba(20,83,45,0.08)',
+    background: '#141d2e',
     borderTop: '3px solid',
   },
-  summaryLabel: { fontSize: 12, color: '#888', fontWeight: 600 },
-  summaryValue: { fontSize: 17, fontWeight: 800 },
+  summaryLabel: { fontSize: 12, color: '#64748b', fontWeight: 600 },
+  summaryValue: { fontSize: 17, fontWeight: 800, color: '#e2e8f0' },
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: 10,
-    background: 'white',
+    background: '#141d2e',
     borderRadius: 20,
     padding: 18,
     marginBottom: 24,
-    boxShadow: '0 4px 14px rgba(20,83,45,0.08)',
   },
-  formTitle: { margin: '0 0 4px 0', fontSize: 17, color: '#14532d', fontWeight: 800 },
+  formTitle: { margin: '0 0 4px 0', fontSize: 17, color: '#e2e8f0', fontWeight: 800 },
   typeToggle: { display: 'flex', gap: 8, marginBottom: 4 },
   typeButton: {
     flex: 1,
     padding: 10,
     borderRadius: 10,
-    border: '1px solid #ddd',
-    background: 'white',
+    border: '1px solid #1e293b',
+    background: '#0b1120',
+    color: '#e2e8f0',
     cursor: 'pointer',
     fontWeight: 600,
   },
-  typeButtonActiveExpense: { background: '#ef4444', color: 'white', border: '1px solid #ef4444' },
-  typeButtonActiveIncome: { background: '#22c55e', color: 'white', border: '1px solid #22c55e' },
+  typeButtonActiveExpense: { background: '#fb7185', color: '#0b1120', border: '1px solid #fb7185' },
+  typeButtonActiveIncome: { background: '#a3e635', color: '#0b1120', border: '1px solid #a3e635' },
   input: {
     padding: 12,
     borderRadius: 10,
-    border: '1px solid #ddd',
+    border: '1px solid #1e293b',
+    background: '#0b1120',
+    color: '#e2e8f0',
     fontSize: 15,
     fontFamily: 'inherit',
   },
@@ -1312,17 +1503,17 @@ const styles = {
     padding: 12,
     borderRadius: 12,
     border: 'none',
-    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-    color: 'white',
-    fontWeight: 700,
+    background: 'linear-gradient(135deg, #a3e635, #65a30d)',
+    color: '#0b1120',
+    fontWeight: 800,
     cursor: 'pointer',
-    boxShadow: '0 4px 10px rgba(34,197,94,0.3)',
   },
   cancelButton: {
     padding: 12,
     borderRadius: 10,
-    border: '1px solid #ddd',
-    background: 'white',
+    border: '1px solid #1e293b',
+    background: '#0b1120',
+    color: '#e2e8f0',
     cursor: 'pointer',
   },
   list: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 },
@@ -1332,11 +1523,10 @@ const styles = {
     alignItems: 'center',
     padding: 12,
     borderRadius: 14,
-    background: 'white',
-    boxShadow: '0 2px 8px rgba(20,83,45,0.06)',
+    background: '#141d2e',
   },
-  listItemTitle: { margin: 0, fontWeight: 700, fontSize: 14, color: '#14532d' },
-  listItemMeta: { margin: 0, color: '#888', fontSize: 12 },
+  listItemTitle: { margin: 0, fontWeight: 700, fontSize: 14, color: '#e2e8f0' },
+  listItemMeta: { margin: 0, color: '#64748b', fontSize: 12 },
   listItemAmount: { fontWeight: 700, fontSize: 14 },
   iconButton: {
     border: 'none',
@@ -1344,32 +1534,78 @@ const styles = {
     cursor: 'pointer',
     fontSize: 16,
   },
-  errorText: { color: '#ef4444', fontSize: 13, margin: 0 },
+  errorText: { color: '#fb7185', fontSize: 13, margin: 0 },
+  categoryGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 10,
+    marginTop: 8,
+  },
+  categoryGridCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    background: '#0b1120',
+    borderRadius: 16,
+    padding: 12,
+  },
+  categoryGridName: { margin: 0, fontSize: 12, fontWeight: 700, color: '#e2e8f0' },
+  categoryGridAmount: { margin: '2px 0 0 0', fontSize: 14, fontWeight: 800, color: '#e2e8f0' },
+  categoryGridCount: { margin: '2px 0 0 0', fontSize: 10, color: '#64748b' },
+  darkListItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    background: '#141d2e',
+    borderLeft: '4px solid',
+  },
+  darkListItemIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: '50%',
+    background: '#0b1120',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 16,
+    flexShrink: 0,
+  },
+  darkListItemTitle: { margin: 0, fontWeight: 700, fontSize: 14, color: '#e2e8f0' },
+  darkListItemMeta: { margin: 0, color: '#64748b', fontSize: 11 },
+  darkListItemAmount: { fontWeight: 800, fontSize: 14, color: '#fb7185', whiteSpace: 'nowrap' },
+  darkIconButton: {
+    border: 'none',
+    background: 'transparent',
+    color: '#64748b',
+    cursor: 'pointer',
+    fontSize: 14,
+  },
   budgetsSection: {
-    background: 'white',
+    background: '#141d2e',
     borderRadius: 20,
     padding: 18,
     marginBottom: 24,
-    boxShadow: '0 4px 14px rgba(20,83,45,0.08)',
   },
   budgetsList: { display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 },
   budgetRow: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
-    background: '#f6fdf9',
+    background: '#0b1120',
     borderRadius: 14,
     padding: 12,
   },
   budgetRowHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   budgetCircleRow: { display: 'flex', alignItems: 'center', gap: 12 },
   budgetCircleInfo: { display: 'flex', flexDirection: 'column', gap: 2 },
-  budgetCategory: { fontWeight: 700, fontSize: 14, color: '#14532d' },
-  budgetAmounts: { fontSize: 13, color: '#555' },
+  budgetCategory: { fontWeight: 700, fontSize: 14, color: '#e2e8f0' },
+  budgetAmounts: { fontSize: 13, color: '#94a3b8' },
   budgetBarTrack: {
     height: 8,
     borderRadius: 999,
-    background: '#e5e7eb',
+    background: '#1e293b',
     overflow: 'hidden',
   },
   budgetBarFill: {
@@ -1382,7 +1618,9 @@ const styles = {
     flex: 1,
     padding: 10,
     borderRadius: 10,
-    border: '1px solid #ddd',
+    border: '1px solid #1e293b',
+    background: '#141d2e',
+    color: '#e2e8f0',
     fontSize: 13,
     fontFamily: 'inherit',
   },
@@ -1390,9 +1628,9 @@ const styles = {
     padding: '10px 14px',
     borderRadius: 10,
     border: 'none',
-    background: '#3b82f6',
-    color: 'white',
-    fontWeight: 600,
+    background: '#38bdf8',
+    color: '#0b1120',
+    fontWeight: 700,
     fontSize: 13,
     cursor: 'pointer',
   },
@@ -1403,18 +1641,17 @@ const styles = {
     marginTop: 8,
     marginBottom: 16,
     paddingBottom: 16,
-    borderBottom: '1px solid #e5e7eb',
+    borderBottom: '1px solid #1e293b',
   },
   goalCard: {
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
-    background: 'white',
+    background: '#0b1120',
     borderRadius: 16,
     padding: 14,
-    boxShadow: '0 2px 8px rgba(20,83,45,0.06)',
   },
-  goalDeadline: { fontSize: 12, color: '#888' },
+  goalDeadline: { fontSize: 12, color: '#64748b' },
   pieWrapper: { display: 'flex', justifyContent: 'center', marginBottom: 20 },
   pieChart: {
     width: 180,
@@ -1424,8 +1661,8 @@ const styles = {
   pieLegend: { display: 'flex', flexDirection: 'column', gap: 8 },
   pieLegendRow: { display: 'flex', alignItems: 'center', gap: 8 },
   pieLegendDot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
-  pieLegendLabel: { flex: 1, fontSize: 13, fontWeight: 600 },
-  pieLegendValue: { fontSize: 13, color: '#555' },
+  pieLegendLabel: { flex: 1, fontSize: 13, fontWeight: 600, color: '#e2e8f0' },
+  pieLegendValue: { fontSize: 13, color: '#94a3b8' },
   tabBar: {
     position: 'fixed',
     bottom: 0,
@@ -1434,12 +1671,13 @@ const styles = {
     maxWidth: 480,
     margin: '0 auto',
     display: 'flex',
+    alignItems: 'center',
     justifyContent: 'space-around',
-    background: 'white',
+    background: '#0f1729',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: '10px 0',
-    boxShadow: '0 -6px 20px rgba(20,83,45,0.12)',
+    boxShadow: '0 -6px 20px rgba(0,0,0,0.4)',
   },
   tabButton: {
     display: 'flex',
@@ -1452,12 +1690,27 @@ const styles = {
     fontSize: 20,
     padding: '6px 14px',
     borderRadius: 14,
-    color: '#9ca3af',
+    color: '#64748b',
     transition: 'background 0.2s ease, color 0.2s ease',
   },
   tabButtonActive: {
-    color: '#16a34a',
-    background: '#dcfce7',
+    color: '#a3e635',
   },
   tabLabel: { fontSize: 10, fontWeight: 700 },
+  addTabButton: {
+    width: 52,
+    height: 52,
+    borderRadius: '50%',
+    border: 'none',
+    background: 'linear-gradient(135deg, #a3e635, #65a30d)',
+    color: '#0b1120',
+    fontSize: 26,
+    fontWeight: 800,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -24,
+    boxShadow: '0 6px 16px rgba(163,230,53,0.4)',
+  },
 }
