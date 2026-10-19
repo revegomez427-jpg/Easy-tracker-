@@ -1040,6 +1040,8 @@ export default function App() {
   )
   const totalTransferred = useMemo(() => transfers.reduce((s, t) => s + t.amount, 0), [transfers])
   const remaining = totalIncome - totalSpent - totalTransferred
+  const accumulatedSaved = savedPeriods.reduce((s, p) => s + (p.saved > 0 ? p.saved : 0), 0)
+  const totalSaved = accumulatedSaved + remaining
   const pct = totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0
   const etMood =
     pct === 0 ? 'sleepy'
@@ -1145,7 +1147,7 @@ export default function App() {
       const label = `${MONTHS_ES[now.getMonth()]} ${now.getFullYear()}`
       const periodRecord = {
         id: Date.now(), label, date: todayKey(),
-        income: totalIncome, spent: totalSpent, saved: totalIncome - totalSpent,
+        income: totalIncome, spent: totalSpent, saved: totalIncome - totalSpent - totalTransferred,
         expenses: [...expenses], transfers: [...transfers],
       }
       const updatedPeriods = [periodRecord, ...savedPeriods]
@@ -1266,7 +1268,7 @@ export default function App() {
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: T.elevated, borderRadius: 20, padding: '0.25rem 0.75rem' }}>
                   <span style={{ fontSize: '0.7rem', color: T.slate }}>💰 Ahorrado:</span>
                   <span style={{ fontSize: '0.8rem', fontWeight: 800, color: T.lime }}>
-                    {fmt(savedPeriods.reduce((s, p) => s + (p.saved > 0 ? p.saved : 0), 0))}
+                    {fmt(totalSaved)}
                   </span>
                 </div>
               )}
@@ -1373,7 +1375,6 @@ export default function App() {
         {homeTab === 'savings' && (
           <div style={{ padding: '1rem 1.25rem' }}>
             {(() => {
-              const totalSaved = savedPeriods.reduce((s, p) => s + (p.saved > 0 ? p.saved : 0), 0)
               return (
                 <div style={{ background: T.card, borderRadius: 16, padding: '1.25rem', border: `1px solid ${T.border}`, marginBottom: '1rem' }}>
                   <div style={{ fontSize: '0.65rem', color: T.slate, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>💰 Ahorro acumulado total</div>
@@ -1773,7 +1774,7 @@ export default function App() {
               <button onClick={() => setNewMonthAlert(false)} style={{ flex: 1, padding: '0.8rem', background: T.border, border: 'none', borderRadius: 12, color: T.slate, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Después</button>
               <button onClick={() => {
                 if (expenses.length > 0 || transfers.length > 0) {
-                  const periodRecord = { id: Date.now(), label: prevMonthLabel, date: todayKey(), income: totalIncome, spent: totalSpent, saved: totalIncome - totalSpent, expenses: [...expenses], transfers: [...transfers] }
+                  const periodRecord = { id: Date.now(), label: prevMonthLabel, date: todayKey(), income: totalIncome, spent: totalSpent, saved: totalIncome - totalSpent - totalTransferred, expenses: [...expenses], transfers: [...transfers] }
                   const updatedPeriods = [periodRecord, ...savedPeriods]
                   setSavedPeriods(updatedPeriods)
                   setExpenses([])
